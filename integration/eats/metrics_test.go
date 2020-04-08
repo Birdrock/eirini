@@ -85,7 +85,7 @@ var _ = Describe("Metrics", func() {
 				Ports:        []int32{8080},
 				Lifecycle: cf.Lifecycle{
 					DockerLifecycle: &cf.DockerLifecycle{
-						Image: "eirini/notdora",
+						Image: "eirini/dorini",
 					},
 				},
 				MemoryMB: 200,

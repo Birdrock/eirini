@@ -39,7 +39,7 @@ func main() {
 		Collector: collector,
 		Emitter:   routeEmitter,
 		Scheduler: &util.TickerTaskScheduler{
-			Ticker: time.NewTicker(tickerPeriod),
+			Ticker: time.NewTicker(1 * time.Second),
 			Logger: logger.Session("scheduler"),
 		},
 	}

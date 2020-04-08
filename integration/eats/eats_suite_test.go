@@ -70,7 +70,7 @@ func runOpi(certPath, keyPath string) (*gexec.Session, string, string) {
 	eiriniConfig := &eirini.Config{
 		Properties: eirini.Properties{
 			KubeConfig: eirini.KubeConfig{
-				ConfigPath: os.Getenv("INTEGRATION_KUBECONFIG"),
+				ConfigPath: fixture.KubeConfigPath,
 				Namespace:  fixture.Namespace,
 			},
 			CCCAPath:             certPath,
