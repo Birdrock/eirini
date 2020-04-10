@@ -60,7 +60,6 @@ func (c RouteCollector) Collect() ([]route.Message, error) {
 			routeMessages = append(routeMessages, routeMessage)
 		}
 	}
-	c.logger.Debug(fmt.Sprintf("EMMITTING MESSAGE >>>>>>>>>>>>>>>> %#v", routeMessages))
 	return routeMessages, nil
 }
 

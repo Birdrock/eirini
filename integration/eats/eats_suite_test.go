@@ -79,6 +79,7 @@ func runOpi(certPath, keyPath string) (*gexec.Session, string, string) {
 			ServerCertPath:       certPath,
 			ServerKeyPath:        keyPath,
 			ClientCAPath:         certPath,
+			DiskLimitMB:          500,
 			TLSPort:              61000 + rand.Intn(1000) + ginkgoconfig.GinkgoConfig.ParallelNode,
 			CCUploaderSecretName: "cc-uploader-secret",
 			CCUploaderCertPath:   "path-to-crt",

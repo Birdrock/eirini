@@ -2,6 +2,7 @@ package route
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"code.cloudfoundry.org/eirini/util"
 	"code.cloudfoundry.org/lager"
@@ -50,7 +51,6 @@ func NewEmitterFromConfig(natsIP string, natsPort int, natsPassword string, logg
 }
 
 func (e MessageEmitter) Emit(route Message) {
-	e.logger.Debug("EMITTING A MESSAGE NOW >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 	if len(route.Address) == 0 {
 		e.logger.Debug("route-address-missing", lager.Data{"app-name": route.Name, "instance-id": route.InstanceID})
 		return
@@ -101,6 +101,7 @@ func (e MessageEmitter) publish(subject string, route Message) error {
 		return errors.Wrap(err, "failed to marshal route message:")
 	}
 
+	fmt.Printf("PUBLISHIUNG :%s, %#v\n", subject, routeJSON)
 	if err = e.publisher.Publish(subject, routeJSON); err != nil {
 		return err
 	}

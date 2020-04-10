@@ -99,12 +99,12 @@ var _ = FDescribe("Routes", func() {
 		BeforeEach(func() {
 			lrp = cf.DesireLRPRequest{
 				GUID:         "the-app-guid",
-				Version:      "0.0.0",
+				Version:      "the-version",
 				NumInstances: 1,
 				Routes: map[string]*json.RawMessage{
 					"cf-router": marshalRoutes([]routeInfo{
 						{Hostname: "app-hostname-1", Port: 8080},
-						{Hostname: "app-hostname-2", Port: 9090},
+						// {Hostname: "app-hostname-2", Port: 9090},
 					}),
 				},
 				Ports: []int32{8080},
