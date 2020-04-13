@@ -2,7 +2,6 @@ package route
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"code.cloudfoundry.org/eirini/util"
 	"code.cloudfoundry.org/lager"
@@ -101,7 +100,6 @@ func (e MessageEmitter) publish(subject string, route Message) error {
 		return errors.Wrap(err, "failed to marshal route message:")
 	}
 
-	fmt.Printf("PUBLISHIUNG :%s, %#v\n", subject, routeJSON)
 	if err = e.publisher.Publish(subject, routeJSON); err != nil {
 		return err
 	}

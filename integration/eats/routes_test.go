@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -12,6 +13,7 @@ import (
 
 	"code.cloudfoundry.org/eirini"
 	"code.cloudfoundry.org/eirini/models/cf"
+	"code.cloudfoundry.org/eirini/route"
 	"github.com/nats-io/gnatsd/server"
 	natstest "github.com/nats-io/nats-server/test"
 	"github.com/nats-io/nats.go"
@@ -124,9 +126,16 @@ var _ = FDescribe("Routes", func() {
 		})
 
 		It("registers its routes", func() {
-			var msg nats.Msg
+			var msg *nats.Msg
 			Eventually(registerChan, "1m").Should(Receive(&msg))
-			fmt.Printf("Received msg: %#v\n", msg)
+			var actualMessage route.RegistryMessage
+			Expect(json.Unmarshal(msg.Data, &actualMessage)).To(Succeed())
+			Expect(net.ParseIP(actualMessage.Host).IsUnspecified()).To(BeFalse())
+			Expect(actualMessage.Port).To(BeNumerically("==", 8080))
+			Expect(actualMessage.URIs).To(ConsistOf("app-hostname-1"))
+			Expect(actualMessage.App).To(Equal("the-app-guid"))
+			Expect(actualMessage.PrivateInstanceID).To(ContainSubstring("the-app-guid"))
+
 		})
 
 	})
@@ -168,12 +177,8 @@ func runBinary(binPath string, config interface{}) (*gexec.Session, string) {
 	return session, configFile
 }
 
-func subscribeToNats(natsConfig *server.Options, registerChan, unregisterChan chan<- *nats.Msg) *nats.Conn {
+func subscribeToNats(natsConfig *server.Options, registerChan, unregisterChan chan *nats.Msg) *nats.Conn {
 	natsClientConfig := nats.GetDefaultOptions()
-	natsClientConfig.Timeout = (5 * time.Second)
-	natsClientConfig.ReconnectWait = (20 * time.Millisecond)
-	natsClientConfig.MaxReconnect = 1000
-	natsClientConfig.NoRandomize = true
 	natsClientConfig.Servers = []string{fmt.Sprintf("%s:%d", natsConfig.Host, natsConfig.Port)}
 	natsClientConfig.User = natsConfig.Username
 	natsClientConfig.Password = natsConfig.Password
