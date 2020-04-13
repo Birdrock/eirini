@@ -9,8 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
 
+	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/eirini"
 	"code.cloudfoundry.org/eirini/models/cf"
 	"code.cloudfoundry.org/eirini/route"
@@ -29,9 +29,14 @@ type routeInfo struct {
 	Port     int    `json:"port"`
 }
 
-var _ = Describe("Routes", func() {
+var _ = FDescribe("Routes", func() {
 
 	var (
+		collectorSession   *gexec.Session
+		collectorConfig    string
+		uriInformerSession *gexec.Session
+		uriInformerConfig  string
+
 		natsConfig *server.Options
 		natsServer *server.Server
 		natsClient *nats.Conn
@@ -51,15 +56,17 @@ var _ = Describe("Routes", func() {
 		natsClient = subscribeToNats(natsConfig, registerChan, unregisterChan)
 
 		eiriniRouteConfig := eirini.RouteEmitterConfig{
-			NatsPassword: natsConfig.Password,
-			NatsIP:       natsConfig.Host,
-			NatsPort:     natsConfig.Port,
+			NatsPassword:        natsConfig.Password,
+			NatsIP:              natsConfig.Host,
+			NatsPort:            natsConfig.Port,
+			EmitPeriodInSeconds: 1,
 			KubeConfig: eirini.KubeConfig{
 				ConfigPath: fixture.KubeConfigPath,
 				Namespace:  fixture.Namespace,
 			},
 		}
 		collectorSession, collectorConfig = runBinary("code.cloudfoundry.org/eirini/cmd/route-collector", eiriniRouteConfig)
+		uriInformerSession, uriInformerConfig = runBinary("code.cloudfoundry.org/eirini/cmd/route-statefulset-informer", eiriniRouteConfig)
 
 		lrp = cf.DesireLRPRequest{
 			GUID:         "the-app-guid",
@@ -68,7 +75,6 @@ var _ = Describe("Routes", func() {
 			Routes: map[string]*json.RawMessage{
 				"cf-router": marshalRoutes([]routeInfo{
 					{Hostname: "app-hostname-1", Port: 8080},
-					// {Hostname: "app-hostname-2", Port: 9090},
 				}),
 			},
 			Ports: []int32{8080},
@@ -84,12 +90,14 @@ var _ = Describe("Routes", func() {
 		resp, err := desireLRP(httpClient, opiURL, lrp)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
-		time.Sleep(20 * time.Second)
 	})
 
 	AfterEach(func() {
 		if collectorSession != nil {
 			collectorSession.Kill()
+		}
+		if uriInformerSession != nil {
+			uriInformerSession.Kill()
 		}
 		if natsServer != nil {
 			natsServer.Shutdown()
@@ -98,18 +106,60 @@ var _ = Describe("Routes", func() {
 			natsClient.Close()
 		}
 		Expect(os.Remove(collectorConfig)).To(Succeed())
+		Expect(os.Remove(uriInformerConfig)).To(Succeed())
 	})
 
-	It("registers its routes", func() {
+	It("continuously registers its routes", func() {
 		var msg *nats.Msg
-		Eventually(registerChan, "1m").Should(Receive(&msg))
-		var actualMessage route.RegistryMessage
-		Expect(json.Unmarshal(msg.Data, &actualMessage)).To(Succeed())
-		Expect(net.ParseIP(actualMessage.Host).IsUnspecified()).To(BeFalse())
-		Expect(actualMessage.Port).To(BeNumerically("==", 8080))
-		Expect(actualMessage.URIs).To(ConsistOf("app-hostname-1"))
-		Expect(actualMessage.App).To(Equal("the-app-guid"))
-		Expect(actualMessage.PrivateInstanceID).To(ContainSubstring("the-app-guid"))
+
+		for i := 0; i < 5; i++ {
+			Eventually(registerChan, "15s").Should(Receive(&msg))
+			var actualMessage route.RegistryMessage
+			Expect(json.Unmarshal(msg.Data, &actualMessage)).To(Succeed())
+			Expect(net.ParseIP(actualMessage.Host).IsUnspecified()).To(BeFalse())
+			Expect(actualMessage.Port).To(BeNumerically("==", 8080))
+			Expect(actualMessage.URIs).To(ConsistOf("app-hostname-1"))
+			Expect(actualMessage.App).To(Equal("the-app-guid"))
+			Expect(actualMessage.PrivateInstanceID).To(ContainSubstring("the-app-guid"))
+		}
+	})
+
+	When("the app fails to start", func() {
+		BeforeEach(func() {
+			lrp.Lifecycle.DockerLifecycle.Image = "eirini/does-not-exist"
+		})
+
+		It("does not register routes", func() {
+			Consistently(registerChan, "5s").ShouldNot(Receive())
+		})
+	})
+
+	When("a new route is added to the app", func() {
+
+		JustBeforeEach(func() {
+			Expect(updateLRP(httpClient, opiURL, cf.UpdateDesiredLRPRequest{
+				UpdateDesiredLRPRequest: models.UpdateDesiredLRPRequest{
+					ProcessGuid: "the-app-guid-the-version",
+					Update: &models.DesiredLRPUpdate{
+						Routes: &models.Routes{
+							"cf-router": marshalRoutes([]routeInfo{
+								{Hostname: "app-hostname-1", Port: 8080},
+								{Hostname: "app-hostname-2", Port: 9090},
+							}),
+						},
+					},
+				},
+			})).To(Succeed())
+
+		})
+
+		FIt("registers the new route", func() {
+			var msg *nats.Msg
+			Eventually(registerChan, "15s").Should(Receive(&msg))
+			var actualMessage route.RegistryMessage
+			Expect(json.Unmarshal(msg.Data, &actualMessage)).To(Succeed())
+			Expect(actualMessage.URIs).To(ConsistOf("app-hostname-1", "app-hostname-2"))
+		})
 	})
 })
 

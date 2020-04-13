@@ -37,8 +37,6 @@ var (
 	localhostCertPath, localhostKeyPath string
 	opiConfig                           string
 	opiSession                          *gexec.Session
-	collectorSession                    *gexec.Session
-	collectorConfig                     string
 	httpClient                          *http.Client
 	opiURL                              string
 )
@@ -171,11 +169,31 @@ func desireLRP(httpClient rest.HTTPClient, opiURL string, lrpRequest cf.DesireLR
 	if err != nil {
 		return nil, err
 	}
-	desireLrpReq, err := http.NewRequest("PUT", fmt.Sprintf("%s/apps/the-app-guid", opiURL), bytes.NewReader(body))
+	desireLrpReq, err := http.NewRequest("PUT", fmt.Sprintf("%s/apps/%s", opiURL, lrpRequest.GUID), bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
 	return httpClient.Do(desireLrpReq)
+}
+
+func getLRP(httpClient rest.HTTPClient, opiURL, guid string) (*http.Response, error) {
+	desireLrpReq, err := http.NewRequest("GET", fmt.Sprintf("%s/apps/%s", opiURL, guid), nil)
+	if err != nil {
+		return nil, err
+	}
+	return httpClient.Do(desireLrpReq)
+}
+
+func updateLRP(httpClient rest.HTTPClient, opiURL string, updateRequest cf.UpdateDesiredLRPRequest) (*http.Response, error) {
+	body, err := json.Marshal(updateRequest)
+	if err != nil {
+		return nil, err
+	}
+	updateLrpReq, err := http.NewRequest("POST", fmt.Sprintf("%s/apps/%s", opiURL, updateRequest.GUID), bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	return httpClient.Do(updateLrpReq)
 }
 
 func writeTempFile(content []byte, fileName string) string {
