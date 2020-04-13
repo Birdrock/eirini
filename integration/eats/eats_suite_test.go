@@ -33,6 +33,14 @@ func TestEats(t *testing.T) {
 
 var (
 	fixture *util.Fixture
+
+	localhostCertPath, localhostKeyPath string
+	opiConfig                           string
+	opiSession                          *gexec.Session
+	collectorSession                    *gexec.Session
+	collectorConfig                     string
+	httpClient                          *http.Client
+	opiURL                              string
 )
 
 var _ = BeforeSuite(func() {
@@ -43,10 +51,24 @@ var _ = BeforeSuite(func() {
 
 var _ = BeforeEach(func() {
 	fixture.SetUp()
+
+	localhostCertPath, localhostKeyPath = generateKeyPair("localhost")
+
+	var err error
+	httpClient, err = makeTestHTTPClient(localhostCertPath, localhostKeyPath)
+	Expect(err).ToNot(HaveOccurred())
+
+	opiSession, opiConfig, opiURL = runOpi(localhostCertPath, localhostKeyPath)
+	waitOpiReady(httpClient, opiURL)
 })
 
 var _ = AfterEach(func() {
 	fixture.TearDown()
+
+	if opiSession != nil {
+		opiSession.Kill()
+	}
+	Expect(os.Remove(opiConfig)).To(Succeed())
 })
 
 func generateKeyPair(name string) (string, string) {

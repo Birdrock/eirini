@@ -29,38 +29,22 @@ type routeInfo struct {
 	Port     int    `json:"port"`
 }
 
-var _ = FDescribe("Routes", func() {
+var _ = Describe("Routes", func() {
 
 	var (
-		opiConfig        string
-		opiSession       *gexec.Session
-		collectorSession *gexec.Session
-		collectorConfig  string
-		httpClient       *http.Client
-		opiURL           string
-
-		localhostCertPath, localhostKeyPath string
-
 		natsConfig *server.Options
 		natsServer *server.Server
 		natsClient *nats.Conn
 
 		registerChan   chan *nats.Msg
 		unregisterChan chan *nats.Msg
+
+		lrp cf.DesireLRPRequest
 	)
 
 	BeforeEach(func() {
-		localhostCertPath, localhostKeyPath = generateKeyPair("localhost")
-
 		registerChan = make(chan *nats.Msg)
 		unregisterChan = make(chan *nats.Msg)
-
-		var err error
-		httpClient, err = makeTestHTTPClient(localhostCertPath, localhostKeyPath)
-		Expect(err).ToNot(HaveOccurred())
-
-		opiSession, opiConfig, opiURL = runOpi(localhostCertPath, localhostKeyPath)
-		waitOpiReady(httpClient, opiURL)
 
 		natsConfig = getNatsServerConfig()
 		natsServer = natstest.RunServer(natsConfig)
@@ -76,12 +60,34 @@ var _ = FDescribe("Routes", func() {
 			},
 		}
 		collectorSession, collectorConfig = runBinary("code.cloudfoundry.org/eirini/cmd/route-collector", eiriniRouteConfig)
+
+		lrp = cf.DesireLRPRequest{
+			GUID:         "the-app-guid",
+			Version:      "the-version",
+			NumInstances: 1,
+			Routes: map[string]*json.RawMessage{
+				"cf-router": marshalRoutes([]routeInfo{
+					{Hostname: "app-hostname-1", Port: 8080},
+					// {Hostname: "app-hostname-2", Port: 9090},
+				}),
+			},
+			Ports: []int32{8080},
+			Lifecycle: cf.Lifecycle{
+				DockerLifecycle: &cf.DockerLifecycle{
+					Image: "eirini/dorini",
+				},
+			},
+		}
+	})
+
+	JustBeforeEach(func() {
+		resp, err := desireLRP(httpClient, opiURL, lrp)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+		time.Sleep(20 * time.Second)
 	})
 
 	AfterEach(func() {
-		if opiSession != nil {
-			opiSession.Kill()
-		}
 		if collectorSession != nil {
 			collectorSession.Kill()
 		}
@@ -91,53 +97,19 @@ var _ = FDescribe("Routes", func() {
 		if natsClient != nil {
 			natsClient.Close()
 		}
-		Expect(os.Remove(opiConfig)).To(Succeed())
 		Expect(os.Remove(collectorConfig)).To(Succeed())
 	})
 
-	Context("When an app is running", func() {
-		var lrp cf.DesireLRPRequest
-
-		BeforeEach(func() {
-			lrp = cf.DesireLRPRequest{
-				GUID:         "the-app-guid",
-				Version:      "the-version",
-				NumInstances: 1,
-				Routes: map[string]*json.RawMessage{
-					"cf-router": marshalRoutes([]routeInfo{
-						{Hostname: "app-hostname-1", Port: 8080},
-						// {Hostname: "app-hostname-2", Port: 9090},
-					}),
-				},
-				Ports: []int32{8080},
-				Lifecycle: cf.Lifecycle{
-					DockerLifecycle: &cf.DockerLifecycle{
-						Image: "eirini/dorini",
-					},
-				},
-			}
-		})
-
-		JustBeforeEach(func() {
-			resp, err := desireLRP(httpClient, opiURL, lrp)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
-			time.Sleep(20 * time.Second)
-		})
-
-		It("registers its routes", func() {
-			var msg *nats.Msg
-			Eventually(registerChan, "1m").Should(Receive(&msg))
-			var actualMessage route.RegistryMessage
-			Expect(json.Unmarshal(msg.Data, &actualMessage)).To(Succeed())
-			Expect(net.ParseIP(actualMessage.Host).IsUnspecified()).To(BeFalse())
-			Expect(actualMessage.Port).To(BeNumerically("==", 8080))
-			Expect(actualMessage.URIs).To(ConsistOf("app-hostname-1"))
-			Expect(actualMessage.App).To(Equal("the-app-guid"))
-			Expect(actualMessage.PrivateInstanceID).To(ContainSubstring("the-app-guid"))
-
-		})
-
+	It("registers its routes", func() {
+		var msg *nats.Msg
+		Eventually(registerChan, "1m").Should(Receive(&msg))
+		var actualMessage route.RegistryMessage
+		Expect(json.Unmarshal(msg.Data, &actualMessage)).To(Succeed())
+		Expect(net.ParseIP(actualMessage.Host).IsUnspecified()).To(BeFalse())
+		Expect(actualMessage.Port).To(BeNumerically("==", 8080))
+		Expect(actualMessage.URIs).To(ConsistOf("app-hostname-1"))
+		Expect(actualMessage.App).To(Equal("the-app-guid"))
+		Expect(actualMessage.PrivateInstanceID).To(ContainSubstring("the-app-guid"))
 	})
 })
 

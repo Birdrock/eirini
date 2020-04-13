@@ -29,47 +29,29 @@ var _ = Describe("Metrics", func() {
 
 	var (
 		metricsConfigFile string
-		opiConfigFile     string
 		metricsSession    *gexec.Session
-		opiSession        *gexec.Session
-
-		httpClient *http.Client
-		opiURL     string
 
 		grpcServer *grpc.Server
 		envelopes  chan *loggregator_v2.Envelope
 
-		metricsCertPath, metricsKeyPath     string
-		localhostCertPath, localhostKeyPath string
+		metricsCertPath, metricsKeyPath string
 	)
 
 	BeforeEach(func() {
 		metricsCertPath, metricsKeyPath = generateKeyPair("metron")
-		localhostCertPath, localhostKeyPath = generateKeyPair("localhost")
-
-		var err error
-		httpClient, err = makeTestHTTPClient(localhostCertPath, localhostKeyPath)
-		Expect(err).ToNot(HaveOccurred())
 
 		envelopes = make(chan *loggregator_v2.Envelope)
 		var metronAddress string
 		grpcServer, metronAddress = runMetronStub(metricsCertPath, metricsKeyPath, envelopes)
 
 		metricsSession, metricsConfigFile = runMetricsCollector(metricsCertPath, metricsKeyPath, metronAddress)
-
-		opiSession, opiConfigFile, opiURL = runOpi(localhostCertPath, localhostKeyPath)
-		waitOpiReady(httpClient, opiURL)
 	})
 
 	AfterEach(func() {
 		if metricsSession != nil {
 			metricsSession.Kill()
 		}
-		if opiSession != nil {
-			opiSession.Kill()
-		}
 		Expect(os.Remove(metricsConfigFile)).To(Succeed())
-		Expect(os.Remove(opiConfigFile)).To(Succeed())
 
 		grpcServer.Stop()
 	})
