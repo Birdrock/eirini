@@ -4,10 +4,8 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 
 	"code.cloudfoundry.org/eirini"
-	"gopkg.in/yaml.v2"
 
 	"code.cloudfoundry.org/eirini/integration/eats/fakes"
 	"code.cloudfoundry.org/eirini/models/cf"
@@ -44,7 +42,18 @@ var _ = Describe("Metrics", func() {
 		var metronAddress string
 		grpcServer, metronAddress = runMetronStub(metricsCertPath, metricsKeyPath, envelopes)
 
-		metricsSession, metricsConfigFile = runMetricsCollector(metricsCertPath, metricsKeyPath, metronAddress)
+		config := &eirini.MetricsCollectorConfig{
+			KubeConfig: eirini.KubeConfig{
+				Namespace:  fixture.Namespace,
+				ConfigPath: fixture.KubeConfigPath,
+			},
+			LoggregatorAddress:               metronAddress,
+			LoggregatorCertPath:              metricsCertPath,
+			LoggregatorCAPath:                metricsCertPath,
+			LoggregatorKeyPath:               metricsKeyPath,
+			AppMetricsEmissionIntervalInSecs: 1,
+		}
+		metricsSession, metricsConfigFile = runBinary("code.cloudfoundry.org/eirini/cmd/metrics-collector", config)
 	})
 
 	AfterEach(func() {
@@ -146,33 +155,6 @@ func batchSenderStub(envelopes chan *loggregator_v2.Envelope) BatchSenderStub {
 			}
 		}
 	}
-}
-
-func runMetricsCollector(certPath, keyPath, metronAddress string) (*gexec.Session, string) {
-	binaryPath, err := gexec.Build("code.cloudfoundry.org/eirini/cmd/metrics-collector")
-	Expect(err).NotTo(HaveOccurred())
-
-	config := &eirini.MetricsCollectorConfig{
-		KubeConfig: eirini.KubeConfig{
-			Namespace:  fixture.Namespace,
-			ConfigPath: fixture.KubeConfigPath,
-		},
-		LoggregatorAddress:               metronAddress,
-		LoggregatorCertPath:              certPath,
-		LoggregatorCAPath:                certPath,
-		LoggregatorKeyPath:               keyPath,
-		AppMetricsEmissionIntervalInSecs: 1,
-	}
-
-	configBytes, err := yaml.Marshal(config)
-	Expect(err).NotTo(HaveOccurred())
-
-	configFile := writeTempFile(configBytes, "config.yaml")
-	command := exec.Command(binaryPath, "-c", configFile) // #nosec G204
-	metricsSession, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-	Expect(err).ToNot(HaveOccurred())
-
-	return metricsSession, configFile
 }
 
 func checkMetrics(envelope *loggregator_v2.Envelope, memoryQuota, diskQuota int64) {

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	ginkgoconfig "github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/rest"
 )
 
@@ -204,4 +206,19 @@ func writeTempFile(content []byte, fileName string) string {
 	err = ioutil.WriteFile(configFile.Name(), content, os.ModePerm)
 	Expect(err).ToNot(HaveOccurred())
 	return configFile.Name()
+}
+
+func runBinary(binPath string, config interface{}) (*gexec.Session, string) {
+	binaryPath, err := gexec.Build(binPath)
+	Expect(err).NotTo(HaveOccurred())
+
+	configBytes, err := yaml.Marshal(config)
+	Expect(err).NotTo(HaveOccurred())
+
+	configFile := writeTempFile(configBytes, filepath.Base(binaryPath)+"-config.yaml")
+	command := exec.Command(binaryPath, "-c", configFile) // #nosec G204
+	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+	Expect(err).ToNot(HaveOccurred())
+
+	return session, configFile
 }

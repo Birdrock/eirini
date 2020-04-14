@@ -7,8 +7,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
-	"path/filepath"
 
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/eirini"
@@ -21,7 +19,6 @@ import (
 	ginkgoconfig "github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"gopkg.in/yaml.v2"
 )
 
 type routeInfo struct {
@@ -29,13 +26,15 @@ type routeInfo struct {
 	Port     int    `json:"port"`
 }
 
-var _ = FDescribe("Routes", func() {
+var _ = Describe("Routes", func() {
 
 	var (
-		collectorSession   *gexec.Session
-		collectorConfig    string
-		uriInformerSession *gexec.Session
-		uriInformerConfig  string
+		collectorSession        *gexec.Session
+		collectorConfig         string
+		uriInformerSession      *gexec.Session
+		uriInformerConfig       string
+		instanceInformerSession *gexec.Session
+		instanceInformerConfig  string
 
 		natsConfig *server.Options
 		natsServer *server.Server
@@ -67,6 +66,7 @@ var _ = FDescribe("Routes", func() {
 		}
 		collectorSession, collectorConfig = runBinary("code.cloudfoundry.org/eirini/cmd/route-collector", eiriniRouteConfig)
 		uriInformerSession, uriInformerConfig = runBinary("code.cloudfoundry.org/eirini/cmd/route-statefulset-informer", eiriniRouteConfig)
+		instanceInformerSession, instanceInformerConfig = runBinary("code.cloudfoundry.org/eirini/cmd/route-pod-informer", eiriniRouteConfig)
 
 		lrp = cf.DesireLRPRequest{
 			GUID:         "the-app-guid",
@@ -86,18 +86,15 @@ var _ = FDescribe("Routes", func() {
 		}
 	})
 
-	JustBeforeEach(func() {
-		resp, err := desireLRP(httpClient, opiURL, lrp)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
-	})
-
 	AfterEach(func() {
 		if collectorSession != nil {
 			collectorSession.Kill()
 		}
 		if uriInformerSession != nil {
 			uriInformerSession.Kill()
+		}
+		if instanceInformerSession != nil {
+			instanceInformerSession.Kill()
 		}
 		if natsServer != nil {
 			natsServer.Shutdown()
@@ -107,58 +104,94 @@ var _ = FDescribe("Routes", func() {
 		}
 		Expect(os.Remove(collectorConfig)).To(Succeed())
 		Expect(os.Remove(uriInformerConfig)).To(Succeed())
+		Expect(os.Remove(instanceInformerConfig)).To(Succeed())
 	})
 
-	It("continuously registers its routes", func() {
-		var msg *nats.Msg
+	Describe("Desiring an app", func() {
+		JustBeforeEach(func() {
+			resp, err := desireLRP(httpClient, opiURL, lrp)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+		})
 
-		for i := 0; i < 5; i++ {
-			Eventually(registerChan, "15s").Should(Receive(&msg))
-			var actualMessage route.RegistryMessage
+		It("continuously registers its routes", func() {
+			var msg *nats.Msg
+
+			for i := 0; i < 5; i++ {
+				Eventually(registerChan, "15s").Should(Receive(&msg))
+				var actualMessage route.RegistryMessage
+				Expect(json.Unmarshal(msg.Data, &actualMessage)).To(Succeed())
+				Expect(net.ParseIP(actualMessage.Host).IsUnspecified()).To(BeFalse())
+				Expect(actualMessage.Port).To(BeNumerically("==", 8080))
+				Expect(actualMessage.URIs).To(ConsistOf("app-hostname-1"))
+				Expect(actualMessage.App).To(Equal("the-app-guid"))
+				Expect(actualMessage.PrivateInstanceID).To(ContainSubstring("the-app-guid"))
+			}
+		})
+
+		When("the app fails to start", func() {
+			BeforeEach(func() {
+				lrp.Lifecycle.DockerLifecycle.Image = "eirini/does-not-exist"
+			})
+
+			It("does not register routes", func() {
+				Consistently(registerChan, "5s").ShouldNot(Receive())
+			})
+		})
+	})
+
+	Describe("Updating an app", func() {
+		var (
+			desiredRoutes []routeInfo
+			emittedRoutes []string
+		)
+
+		appRoutes := func() []string {
+			var (
+				msg           *nats.Msg
+				actualMessage route.RegistryMessage
+			)
+
+			Eventually(registerChan).Should(Receive(&msg))
 			Expect(json.Unmarshal(msg.Data, &actualMessage)).To(Succeed())
-			Expect(net.ParseIP(actualMessage.Host).IsUnspecified()).To(BeFalse())
-			Expect(actualMessage.Port).To(BeNumerically("==", 8080))
-			Expect(actualMessage.URIs).To(ConsistOf("app-hostname-1"))
-			Expect(actualMessage.App).To(Equal("the-app-guid"))
-			Expect(actualMessage.PrivateInstanceID).To(ContainSubstring("the-app-guid"))
+			emittedRoutes = append(emittedRoutes, actualMessage.URIs...)
+			return emittedRoutes
 		}
-	})
-
-	When("the app fails to start", func() {
-		BeforeEach(func() {
-			lrp.Lifecycle.DockerLifecycle.Image = "eirini/does-not-exist"
-		})
-
-		It("does not register routes", func() {
-			Consistently(registerChan, "5s").ShouldNot(Receive())
-		})
-	})
-
-	When("a new route is added to the app", func() {
 
 		JustBeforeEach(func() {
-			Expect(updateLRP(httpClient, opiURL, cf.UpdateDesiredLRPRequest{
+			resp, err := desireLRP(httpClient, opiURL, lrp)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+
+			resp, err = updateLRP(httpClient, opiURL, cf.UpdateDesiredLRPRequest{
+				GUID:    lrp.GUID,
+				Version: lrp.Version,
 				UpdateDesiredLRPRequest: models.UpdateDesiredLRPRequest{
-					ProcessGuid: "the-app-guid-the-version",
 					Update: &models.DesiredLRPUpdate{
+						OptionalInstances: &models.DesiredLRPUpdate_Instances{
+							Instances: int32(lrp.NumInstances),
+						},
 						Routes: &models.Routes{
-							"cf-router": marshalRoutes([]routeInfo{
-								{Hostname: "app-hostname-1", Port: 8080},
-								{Hostname: "app-hostname-2", Port: 9090},
-							}),
+							"cf-router": marshalRoutes(desiredRoutes),
 						},
 					},
 				},
-			})).To(Succeed())
-
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 		})
 
-		FIt("registers the new route", func() {
-			var msg *nats.Msg
-			Eventually(registerChan, "15s").Should(Receive(&msg))
-			var actualMessage route.RegistryMessage
-			Expect(json.Unmarshal(msg.Data, &actualMessage)).To(Succeed())
-			Expect(actualMessage.URIs).To(ConsistOf("app-hostname-1", "app-hostname-2"))
+		When("a new route is added to the app", func() {
+			BeforeEach(func() {
+				desiredRoutes = []routeInfo{
+					{Hostname: "app-hostname-1", Port: 8080},
+					{Hostname: "app-hostname-2", Port: 8080},
+				}
+			})
+
+			It("registers the new route", func() {
+				Eventually(appRoutes).Should(ConsistOf("app-hostname-1", "app-hostname-2"))
+			})
 		})
 	})
 })
@@ -182,21 +215,6 @@ func marshalRoutes(routes []routeInfo) *json.RawMessage {
 	rawMessage := &json.RawMessage{}
 	Expect(rawMessage.UnmarshalJSON(bytes)).To(Succeed())
 	return rawMessage
-}
-
-func runBinary(binPath string, config interface{}) (*gexec.Session, string) {
-	binaryPath, err := gexec.Build(binPath)
-	Expect(err).NotTo(HaveOccurred())
-
-	configBytes, err := yaml.Marshal(config)
-	Expect(err).NotTo(HaveOccurred())
-
-	configFile := writeTempFile(configBytes, filepath.Base(binaryPath)+"-config.yaml")
-	command := exec.Command(binaryPath, "-c", configFile) // #nosec G204
-	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-	Expect(err).ToNot(HaveOccurred())
-
-	return session, configFile
 }
 
 func subscribeToNats(natsConfig *server.Options, registerChan, unregisterChan chan *nats.Msg) *nats.Conn {
