@@ -15,7 +15,7 @@ func New(bifrost eirini.Bifrost,
 	handler := httprouter.New()
 
 	appHandler := NewAppHandler(bifrost, lager)
-	stageHandler := NewStageHandler(buildpackStager, dockerStager, lager)
+	stageHandler := NewStageHandler(bifrost, buildpackStager, dockerStager, lager)
 	taskHandler := NewTaskHandler(lager, bifrost)
 
 	registerAppsEndpoints(handler, appHandler)

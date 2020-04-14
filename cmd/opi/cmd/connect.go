@@ -132,14 +132,7 @@ func initTaskDesirer(cfg *eirini.Config, clientset kubernetes.Interface) opi.Tas
 }
 
 func initBuildpackStager(cfg *eirini.Config, taskDesirer opi.TaskDesirer, stagingCompleter stager.StagingCompleter, logger lager.Logger) eirini.Stager {
-	stagerCfg := eirini.StagerConfig{
-		EiriniAddress:   cfg.Properties.EiriniAddress,
-		DownloaderImage: cfg.Properties.DownloaderImage,
-		UploaderImage:   cfg.Properties.UploaderImage,
-		ExecutorImage:   cfg.Properties.ExecutorImage,
-	}
-
-	return stager.New(taskDesirer, stagingCompleter, stagerCfg, logger)
+	return stager.New(taskDesirer, stagingCompleter, logger)
 }
 
 func initDockerStager(stagingCompleter stager.StagingCompleter, logger lager.Logger) eirini.Stager {
@@ -166,6 +159,12 @@ func initBifrost(clientset kubernetes.Interface, cfg *eirini.Config, taskDesirer
 	convertLogger := lager.NewLogger("convert")
 	convertLogger.RegisterSink(lager.NewPrettySink(os.Stdout, lager.DEBUG))
 
+	stagerCfg := eirini.StagerConfig{
+		EiriniAddress:   cfg.Properties.EiriniAddress,
+		DownloaderImage: cfg.Properties.DownloaderImage,
+		UploaderImage:   cfg.Properties.UploaderImage,
+		ExecutorImage:   cfg.Properties.ExecutorImage,
+	}
 	converter := bifrost.NewConverter(
 		convertLogger,
 		cfg.Properties.RegistryAddress,
@@ -173,6 +172,7 @@ func initBifrost(clientset kubernetes.Interface, cfg *eirini.Config, taskDesirer
 		docker.Fetch,
 		docker.Parse,
 		cfg.Properties.AllowRunImageAsRoot,
+		stagerCfg,
 	)
 
 	return &bifrost.Bifrost{

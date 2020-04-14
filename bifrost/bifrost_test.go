@@ -530,4 +530,59 @@ var _ = Describe("Bifrost", func() {
 			})
 		})
 	})
+
+	Describe("Transfer Staging", func() {
+		var (
+			stagingGUID    string
+			stagingRequest cf.StagingRequest
+			stagingTask    opi.StagingTask
+		)
+
+		BeforeEach(func() {
+			stagingGUID = "staging-guid"
+			converter.ConvertStagingReturns(stagingTask, nil)
+			stagingRequest = cf.StagingRequest{AppGUID: "app-guid"}
+		})
+
+		JustBeforeEach(func() {
+			err = bfrst.TransferStaging(context.Background(), stagingGUID, stagingRequest)
+		})
+
+		It("transfers the task", func() {
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(converter.ConvertStagingCallCount()).To(Equal(1))
+			actualStagingGUID, actualStagingRequest := converter.ConvertStagingArgsForCall(0)
+			Expect(actualStagingGUID).To(Equal(stagingGUID))
+			Expect(actualStagingRequest).To(Equal(stagingRequest))
+
+			Expect(taskDesirer.DesireStagingCallCount()).To(Equal(1))
+			desiredStaging := taskDesirer.DesireStagingArgsForCall(0)
+			Expect(*desiredStaging).To(Equal(stagingTask))
+		})
+
+		When("converting the task fails", func() {
+			BeforeEach(func() {
+				converter.ConvertStagingReturns(opi.StagingTask{}, errors.New("staging-conv-err"))
+			})
+
+			It("returns the error", func() {
+				Expect(err).To(MatchError(ContainSubstring("staging-conv-err")))
+			})
+
+			It("does not desire the staging task", func() {
+				Expect(taskDesirer.DesireStagingCallCount()).To(Equal(0))
+			})
+		})
+
+		When("desiring the staging task fails", func() {
+			BeforeEach(func() {
+				taskDesirer.DesireStagingReturns(errors.New("desire-staging-err"))
+			})
+
+			It("returns the error", func() {
+				Expect(err).To(MatchError(ContainSubstring("desire-staging-err")))
+			})
+		})
+	})
 })

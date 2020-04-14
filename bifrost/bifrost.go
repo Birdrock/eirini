@@ -33,6 +33,15 @@ func (b *Bifrost) TransferTask(ctx context.Context, taskGUID string, taskRequest
 	return errors.Wrap(b.TaskDesirer.Desire(&desiredTask), "failed to desire")
 }
 
+func (b *Bifrost) TransferStaging(ctx context.Context, stagingGUID string, stagingRequest cf.StagingRequest) error {
+	desiredStaging, err := b.Converter.ConvertStaging(stagingGUID, stagingRequest)
+	if err != nil {
+		return errors.Wrap(err, "failed to convert staging task")
+	}
+
+	return errors.Wrap(b.TaskDesirer.DesireStaging(&desiredStaging), "failed to desire")
+}
+
 func (b *Bifrost) List(ctx context.Context) ([]*models.DesiredLRPSchedulingInfo, error) {
 	lrps, err := b.Desirer.List()
 	if err != nil {

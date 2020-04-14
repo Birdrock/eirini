@@ -90,6 +90,19 @@ type FakeBifrost struct {
 	transferReturnsOnCall map[int]struct {
 		result1 error
 	}
+	TransferStagingStub        func(context.Context, string, cf.StagingRequest) error
+	transferStagingMutex       sync.RWMutex
+	transferStagingArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 cf.StagingRequest
+	}
+	transferStagingReturns struct {
+		result1 error
+	}
+	transferStagingReturnsOnCall map[int]struct {
+		result1 error
+	}
 	TransferTaskStub        func(context.Context, string, cf.TaskRequest) error
 	transferTaskMutex       sync.RWMutex
 	transferTaskArgsForCall []struct {
@@ -494,6 +507,68 @@ func (fake *FakeBifrost) TransferReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeBifrost) TransferStaging(arg1 context.Context, arg2 string, arg3 cf.StagingRequest) error {
+	fake.transferStagingMutex.Lock()
+	ret, specificReturn := fake.transferStagingReturnsOnCall[len(fake.transferStagingArgsForCall)]
+	fake.transferStagingArgsForCall = append(fake.transferStagingArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 cf.StagingRequest
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("TransferStaging", []interface{}{arg1, arg2, arg3})
+	fake.transferStagingMutex.Unlock()
+	if fake.TransferStagingStub != nil {
+		return fake.TransferStagingStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.transferStagingReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBifrost) TransferStagingCallCount() int {
+	fake.transferStagingMutex.RLock()
+	defer fake.transferStagingMutex.RUnlock()
+	return len(fake.transferStagingArgsForCall)
+}
+
+func (fake *FakeBifrost) TransferStagingCalls(stub func(context.Context, string, cf.StagingRequest) error) {
+	fake.transferStagingMutex.Lock()
+	defer fake.transferStagingMutex.Unlock()
+	fake.TransferStagingStub = stub
+}
+
+func (fake *FakeBifrost) TransferStagingArgsForCall(i int) (context.Context, string, cf.StagingRequest) {
+	fake.transferStagingMutex.RLock()
+	defer fake.transferStagingMutex.RUnlock()
+	argsForCall := fake.transferStagingArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeBifrost) TransferStagingReturns(result1 error) {
+	fake.transferStagingMutex.Lock()
+	defer fake.transferStagingMutex.Unlock()
+	fake.TransferStagingStub = nil
+	fake.transferStagingReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBifrost) TransferStagingReturnsOnCall(i int, result1 error) {
+	fake.transferStagingMutex.Lock()
+	defer fake.transferStagingMutex.Unlock()
+	fake.TransferStagingStub = nil
+	if fake.transferStagingReturnsOnCall == nil {
+		fake.transferStagingReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.transferStagingReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeBifrost) TransferTask(arg1 context.Context, arg2 string, arg3 cf.TaskRequest) error {
 	fake.transferTaskMutex.Lock()
 	ret, specificReturn := fake.transferTaskReturnsOnCall[len(fake.transferTaskArgsForCall)]
@@ -632,6 +707,8 @@ func (fake *FakeBifrost) Invocations() map[string][][]interface{} {
 	defer fake.stopInstanceMutex.RUnlock()
 	fake.transferMutex.RLock()
 	defer fake.transferMutex.RUnlock()
+	fake.transferStagingMutex.RLock()
+	defer fake.transferStagingMutex.RUnlock()
 	fake.transferTaskMutex.RLock()
 	defer fake.transferTaskMutex.RUnlock()
 	fake.updateMutex.RLock()

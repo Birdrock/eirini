@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,15 +15,17 @@ import (
 )
 
 type Stage struct {
+	bifrost         eirini.Bifrost
 	buildpackStager eirini.Stager
 	dockerStager    eirini.Stager
 	logger          lager.Logger
 }
 
-func NewStageHandler(buildpackStager, dockerStager eirini.Stager, logger lager.Logger) *Stage {
+func NewStageHandler(bifrost eirini.Bifrost, buildpackStager, dockerStager eirini.Stager, logger lager.Logger) *Stage {
 	logger = logger.Session("staging-handler")
 
 	return &Stage{
+		bifrost:         bifrost,
 		buildpackStager: buildpackStager,
 		dockerStager:    dockerStager,
 		logger:          logger,
@@ -54,7 +57,7 @@ func (s *Stage) stage(stagingGUID string, stagingRequest cf.StagingRequest) erro
 	if stagingRequest.Lifecycle.DockerLifecycle != nil {
 		return s.dockerStager.Stage(stagingGUID, stagingRequest)
 	}
-	return s.buildpackStager.Stage(stagingGUID, stagingRequest)
+	return s.bifrost.TransferStaging(context.Background(), stagingGUID, stagingRequest)
 }
 
 func (s *Stage) StagingComplete(res http.ResponseWriter, req *http.Request, ps httprouter.Params) {
