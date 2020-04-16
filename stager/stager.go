@@ -10,7 +10,7 @@ import (
 	"go.uber.org/multierr"
 )
 
-//go:generate counterfeiter . StagingCompleter
+//counterfeiter:generate . StagingCompleter
 type StagingCompleter interface {
 	CompleteStaging(*models.TaskCallbackResponse) error
 }

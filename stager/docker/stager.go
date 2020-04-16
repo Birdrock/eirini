@@ -13,14 +13,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:generate counterfeiter . ImageMetadataFetcher
+//counterfeiter:generate . ImageMetadataFetcher
 type ImageMetadataFetcher func(string, types.SystemContext) (*v1.ImageConfig, error)
 
 func (f ImageMetadataFetcher) Fetch(dockerRef string, sysCtx types.SystemContext) (*v1.ImageConfig, error) {
 	return f(dockerRef, sysCtx)
 }
 
-//go:generate counterfeiter . ImageRefParser
+//counterfeiter:generate . ImageRefParser
 type ImageRefParser func(string) (string, error)
 
 func (f ImageRefParser) Parse(img string) (string, error) {

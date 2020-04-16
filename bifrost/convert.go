@@ -19,7 +19,7 @@ const DockerHubHost = "index.docker.io/v1/"
 
 var dockerRX = regexp.MustCompile(`([a-zA-Z0-9.-]+)(:([0-9]+))?/(\S+/\S+)`)
 
-//go:generate counterfeiter . Converter
+//counterfeiter:generate . Converter
 type Converter interface {
 	ConvertLRP(request cf.DesireLRPRequest) (opi.LRP, error)
 	ConvertTask(taskGUID string, request cf.TaskRequest) (opi.Task, error)

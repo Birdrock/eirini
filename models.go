@@ -137,13 +137,13 @@ type StagingReporterConfig struct {
 	KubeConfig `yaml:",inline"`
 }
 
-//go:generate counterfeiter . Stager
+//counterfeiter:generate . Stager
 type Stager interface {
 	Stage(string, cf.StagingRequest) error
 	CompleteStaging(*models.TaskCallbackResponse) error
 }
 
-//go:generate counterfeiter . TaskDesirer
+//counterfeiter:generate . TaskDesirer
 type TaskDesirer interface {
 	Desire(*opi.Task) error
 }
@@ -155,12 +155,12 @@ type StagerConfig struct {
 	ExecutorImage   string
 }
 
-//go:generate counterfeiter . Extractor
+//counterfeiter:generate  . Extractor
 type Extractor interface {
 	Extract(src, targetDir string) error
 }
 
-//go:generate counterfeiter . Bifrost
+//counterfeiter:generate . Bifrost
 type Bifrost interface {
 	Transfer(ctx context.Context, request cf.DesireLRPRequest) error
 	TransferTask(ctx context.Context, taskGUID string, request cf.TaskRequest) error
