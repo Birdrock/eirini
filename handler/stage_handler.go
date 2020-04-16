@@ -15,17 +15,15 @@ import (
 )
 
 type Stage struct {
-	bifrost         eirini.Bifrost
-	buildpackStager eirini.Stager
-	dockerStager    eirini.Stager
+	buildpackStager eirini.BifrostStaging
+	dockerStager    eirini.BifrostStaging
 	logger          lager.Logger
 }
 
-func NewStageHandler(bifrost eirini.Bifrost, buildpackStager, dockerStager eirini.Stager, logger lager.Logger) *Stage {
+func NewStageHandler(buildpackStager, dockerStager eirini.BifrostStaging, logger lager.Logger) *Stage {
 	logger = logger.Session("staging-handler")
 
 	return &Stage{
-		bifrost:         bifrost,
 		buildpackStager: buildpackStager,
 		dockerStager:    dockerStager,
 		logger:          logger,
@@ -55,9 +53,9 @@ func (s *Stage) Stage(resp http.ResponseWriter, req *http.Request, ps httprouter
 
 func (s *Stage) stage(stagingGUID string, stagingRequest cf.StagingRequest) error {
 	if stagingRequest.Lifecycle.DockerLifecycle != nil {
-		return s.dockerStager.Stage(stagingGUID, stagingRequest)
+		return s.dockerStager.TransferStaging(context.Background(), stagingGUID, stagingRequest)
 	}
-	return s.bifrost.TransferStaging(context.Background(), stagingGUID, stagingRequest)
+	return s.buildpackStager.TransferStaging(context.Background(), stagingGUID, stagingRequest)
 }
 
 func (s *Stage) StagingComplete(res http.ResponseWriter, req *http.Request, ps httprouter.Params) {

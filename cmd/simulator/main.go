@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -27,8 +28,9 @@ func main() {
 	}
 
 	stager := &StagerSimulator{}
+	task := &TaskSimulator{}
 
-	handler := handler.New(bifrost, stager, stager, handlerLogger)
+	handler := handler.New(bifrost, stager, stager, task, handlerLogger)
 
 	fmt.Println("Starting to listen at 127.0.0.1:8085")
 	handlerLogger.Fatal("simulator-crahsed", http.ListenAndServe("127.0.0.1:8085", handler))
@@ -90,10 +92,16 @@ func (c *ConverterSimulator) ConvertStaging(stagingGUID string, stagingRequest c
 
 type StagerSimulator struct{}
 
-func (s *StagerSimulator) Stage(stagingGUID string, request cf.StagingRequest) error {
+func (s *StagerSimulator) TransferStaging(ctx context.Context, stagingGUID string, request cf.StagingRequest) error {
 	return nil
 }
 
-func (s *StagerSimulator) CompleteStaging(task *models.TaskCallbackResponse) error {
+func (s *StagerSimulator) CompleteStaging(*models.TaskCallbackResponse) error {
+	return nil
+}
+
+type TaskSimulator struct{}
+
+func (t *TaskSimulator) TransferTask(ctx context.Context, taskGUID string, request cf.TaskRequest) error {
 	return nil
 }

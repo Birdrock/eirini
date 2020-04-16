@@ -9,14 +9,15 @@ import (
 )
 
 func New(bifrost eirini.Bifrost,
-	buildpackStager eirini.Stager,
-	dockerStager eirini.Stager,
+	buildpackStaging eirini.BifrostStaging,
+	dockerStaging eirini.BifrostStaging,
+	buildpackTask eirini.BifrostTask,
 	lager lager.Logger) http.Handler {
 	handler := httprouter.New()
 
 	appHandler := NewAppHandler(bifrost, lager)
-	stageHandler := NewStageHandler(bifrost, buildpackStager, dockerStager, lager)
-	taskHandler := NewTaskHandler(lager, bifrost)
+	stageHandler := NewStageHandler(buildpackStaging, dockerStaging, lager)
+	taskHandler := NewTaskHandler(lager, buildpackTask)
 
 	registerAppsEndpoints(handler, appHandler)
 	registerStageEndpoints(handler, stageHandler)

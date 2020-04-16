@@ -17,19 +17,24 @@ import (
 var _ = Describe("Handler", func() {
 
 	var (
-		ts            *httptest.Server
-		client        *http.Client
-		bifrost       *eirinifakes.FakeBifrost
-		stager        *eirinifakes.FakeStager
-		handlerClient http.Handler
+		ts               *httptest.Server
+		client           *http.Client
+		bifrost          *eirinifakes.FakeBifrost
+		buildpackStaging *eirinifakes.FakeBifrostStaging
+		dockerStaging    *eirinifakes.FakeBifrostStaging
+		buildpackTask    *eirinifakes.FakeBifrostTask
+		handlerClient    http.Handler
 	)
 
 	BeforeEach(func() {
 		client = &http.Client{}
 		bifrost = new(eirinifakes.FakeBifrost)
-		stager = new(eirinifakes.FakeStager)
+		buildpackStaging = new(eirinifakes.FakeBifrostStaging)
+		dockerStaging = new(eirinifakes.FakeBifrostStaging)
+		buildpackTask = new(eirinifakes.FakeBifrostTask)
+
 		lager := lagertest.NewTestLogger("handler-test")
-		handlerClient = New(bifrost, stager, stager, lager)
+		handlerClient = New(bifrost, buildpackStaging, dockerStaging, buildpackTask, lager)
 	})
 
 	JustBeforeEach(func() {

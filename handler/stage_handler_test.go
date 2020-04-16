@@ -24,9 +24,9 @@ var _ = Describe("StageHandler", func() {
 		ts     *httptest.Server
 		logger *lagertest.TestLogger
 
-		buildpackStagingClient *eirinifakes.FakeStager
-		dockerStagingClient    *eirinifakes.FakeStager
-		bifrost                *eirinifakes.FakeBifrost
+		buildpackStagingClient *eirinifakes.FakeBifrostStaging
+		dockerStagingClient    *eirinifakes.FakeBifrostStaging
+		bifrostTaskClient      *eirinifakes.FakeBifrostTask
 		response               *http.Response
 		body                   string
 		path                   string
@@ -35,13 +35,13 @@ var _ = Describe("StageHandler", func() {
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
-		buildpackStagingClient = new(eirinifakes.FakeStager)
-		dockerStagingClient = new(eirinifakes.FakeStager)
-		bifrost = new(eirinifakes.FakeBifrost)
+		buildpackStagingClient = new(eirinifakes.FakeBifrostStaging)
+		dockerStagingClient = new(eirinifakes.FakeBifrostStaging)
+		bifrostTaskClient = new(eirinifakes.FakeBifrostTask)
 	})
 
 	JustBeforeEach(func() {
-		handler := New(bifrost, buildpackStagingClient, dockerStagingClient, logger)
+		handler := New(nil, buildpackStagingClient, dockerStagingClient, bifrostTaskClient, logger)
 		ts = httptest.NewServer(handler)
 		req, err := http.NewRequest(method, ts.URL+path, bytes.NewReader([]byte(body)))
 		Expect(err).NotTo(HaveOccurred())
@@ -74,8 +74,8 @@ var _ = Describe("StageHandler", func() {
 		})
 
 		It("should stage using the correct staging client", func() {
-			Expect(buildpackStagingClient.StageCallCount()).To(Equal(1))
-			stagingGUID, stagingRequest := buildpackStagingClient.StageArgsForCall(0)
+			Expect(buildpackStagingClient.TransferStagingCallCount()).To(Equal(1))
+			_, stagingGUID, stagingRequest := buildpackStagingClient.TransferStagingArgsForCall(0)
 
 			Expect(stagingGUID).To(Equal("guid_1234"))
 			Expect(stagingRequest).To(Equal(cf.StagingRequest{
@@ -117,8 +117,8 @@ var _ = Describe("StageHandler", func() {
 			})
 
 			It("should stage using the correct staging client", func() {
-				Expect(dockerStagingClient.StageCallCount()).To(Equal(1))
-				stagingGUID, stagingRequest := dockerStagingClient.StageArgsForCall(0)
+				Expect(dockerStagingClient.TransferStagingCallCount()).To(Equal(1))
+				_, stagingGUID, stagingRequest := dockerStagingClient.TransferStagingArgsForCall(0)
 
 				Expect(stagingGUID).To(Equal("guid_1234"))
 				Expect(stagingRequest).To(Equal(cf.StagingRequest{
@@ -159,8 +159,8 @@ var _ = Describe("StageHandler", func() {
 			})
 
 			It("should stage using the staging client", func() {
-				Expect(buildpackStagingClient.StageCallCount()).To(Equal(1))
-				stagingGUID, stagingRequest := buildpackStagingClient.StageArgsForCall(0)
+				Expect(buildpackStagingClient.TransferStagingCallCount()).To(Equal(1))
+				_, stagingGUID, stagingRequest := buildpackStagingClient.TransferStagingArgsForCall(0)
 
 				Expect(stagingGUID).To(Equal("guid_1234"))
 				Expect(stagingRequest).To(Equal(cf.StagingRequest{
@@ -180,7 +180,7 @@ var _ = Describe("StageHandler", func() {
 
 		Context("and the staging client fails", func() {
 			BeforeEach(func() {
-				buildpackStagingClient.StageReturns(errors.New("underlying-err"))
+				buildpackStagingClient.TransferStagingReturns(errors.New("underlying-err"))
 			})
 
 			It("should return a 500 Internal Server Error", func() {
@@ -220,7 +220,7 @@ var _ = Describe("StageHandler", func() {
 			})
 
 			It("should not desire a task", func() {
-				Expect(buildpackStagingClient.StageCallCount()).To(Equal(0))
+				Expect(buildpackStagingClient.TransferStagingCallCount()).To(Equal(0))
 			})
 		})
 	})

@@ -18,9 +18,9 @@ import (
 var _ = Describe("TaskHandler", func() {
 
 	var (
-		ts      *httptest.Server
-		logger  *lagertest.TestLogger
-		bifrost *eirinifakes.FakeBifrost
+		ts            *httptest.Server
+		logger        *lagertest.TestLogger
+		buildpackTask *eirinifakes.FakeBifrostTask
 
 		response *http.Response
 		body     string
@@ -30,7 +30,7 @@ var _ = Describe("TaskHandler", func() {
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
-		bifrost = new(eirinifakes.FakeBifrost)
+		buildpackTask = new(eirinifakes.FakeBifrostTask)
 
 		method = "POST"
 		path = "/tasks/guid_1234"
@@ -49,7 +49,7 @@ var _ = Describe("TaskHandler", func() {
 	})
 
 	JustBeforeEach(func() {
-		handler := New(bifrost, nil, nil, logger)
+		handler := New(nil, nil, nil, buildpackTask, logger)
 		ts = httptest.NewServer(handler)
 		req, err := http.NewRequest(method, ts.URL+path, bytes.NewReader([]byte(body)))
 		Expect(err).NotTo(HaveOccurred())
@@ -68,8 +68,8 @@ var _ = Describe("TaskHandler", func() {
 	})
 
 	It("should transfer the task", func() {
-		Expect(bifrost.TransferTaskCallCount()).To(Equal(1))
-		_, actualTaskGUID, actualTaskRequest := bifrost.TransferTaskArgsForCall(0)
+		Expect(buildpackTask.TransferTaskCallCount()).To(Equal(1))
+		_, actualTaskGUID, actualTaskRequest := buildpackTask.TransferTaskArgsForCall(0)
 		Expect(actualTaskGUID).To(Equal("guid_1234"))
 		Expect(actualTaskRequest).To(Equal(cf.TaskRequest{
 			AppGUID:            "our-app-id",
@@ -87,7 +87,7 @@ var _ = Describe("TaskHandler", func() {
 
 	When("transferring the task fails", func() {
 		BeforeEach(func() {
-			bifrost.TransferTaskReturns(errors.New("transfer-task-err"))
+			buildpackTask.TransferTaskReturns(errors.New("transfer-task-err"))
 		})
 
 		It("should return 500 Internal Server Error code", func() {
@@ -105,7 +105,7 @@ var _ = Describe("TaskHandler", func() {
 		})
 
 		It("should not transfer the task", func() {
-			Expect(bifrost.TransferTaskCallCount()).To(Equal(0))
+			Expect(buildpackTask.TransferTaskCallCount()).To(Equal(0))
 		})
 	})
 })

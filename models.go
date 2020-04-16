@@ -163,14 +163,23 @@ type Extractor interface {
 //counterfeiter:generate . Bifrost
 type Bifrost interface {
 	Transfer(ctx context.Context, request cf.DesireLRPRequest) error
-	TransferTask(ctx context.Context, taskGUID string, request cf.TaskRequest) error
-	TransferStaging(ctx context.Context, stagingGUID string, request cf.StagingRequest) error
 	List(ctx context.Context) ([]*models.DesiredLRPSchedulingInfo, error)
 	Update(ctx context.Context, update cf.UpdateDesiredLRPRequest) error
 	Stop(ctx context.Context, identifier opi.LRPIdentifier) error
 	StopInstance(ctx context.Context, identifier opi.LRPIdentifier, index uint) error
 	GetApp(ctx context.Context, identifier opi.LRPIdentifier) (*models.DesiredLRP, error)
 	GetInstances(ctx context.Context, identifier opi.LRPIdentifier) ([]*cf.Instance, error)
+}
+
+//counterfeiter:generate . BifrostTask
+type BifrostTask interface {
+	TransferTask(ctx context.Context, taskGUID string, request cf.TaskRequest) error
+}
+
+//counterfeiter:generate . BifrostStaging
+type BifrostStaging interface {
+	TransferStaging(ctx context.Context, stagingGUID string, request cf.StagingRequest) error
+	CompleteStaging(*models.TaskCallbackResponse) error
 }
 
 func GetInternalServiceName(appName string) string {

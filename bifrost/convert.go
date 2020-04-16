@@ -9,7 +9,6 @@ import (
 	"code.cloudfoundry.org/eirini"
 	"code.cloudfoundry.org/eirini/models/cf"
 	"code.cloudfoundry.org/eirini/opi"
-	"code.cloudfoundry.org/eirini/stager/docker"
 	"code.cloudfoundry.org/lager"
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
@@ -30,13 +29,13 @@ type OPIConverter struct {
 	logger               lager.Logger
 	registryIP           string
 	diskLimitMB          int64
-	imageMetadataFetcher docker.ImageMetadataFetcher
-	imageRefParser       docker.ImageRefParser
+	imageMetadataFetcher ImageMetadataFetcher
+	imageRefParser       ImageRefParser
 	allowRunImageAsRoot  bool
 	stagerConfig         eirini.StagerConfig
 }
 
-func NewConverter(logger lager.Logger, registryIP string, diskLimitMB int64, imageMetadataFetcher docker.ImageMetadataFetcher, imageRefParser docker.ImageRefParser, allowRunImageAsRoot bool, stagerConfig eirini.StagerConfig) *OPIConverter {
+func NewConverter(logger lager.Logger, registryIP string, diskLimitMB int64, imageMetadataFetcher ImageMetadataFetcher, imageRefParser ImageRefParser, allowRunImageAsRoot bool, stagerConfig eirini.StagerConfig) *OPIConverter {
 	return &OPIConverter{
 		logger:               logger,
 		registryIP:           registryIP,

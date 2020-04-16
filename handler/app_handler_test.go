@@ -23,15 +23,17 @@ import (
 
 var _ = Describe("AppHandler", func() {
 	var (
-		bifrost *eirinifakes.FakeBifrost
-		lager   *lagertest.TestLogger
-		ts      *httptest.Server
+		bifrost        *eirinifakes.FakeBifrost
+		bifrostStaging *eirinifakes.FakeBifrostStaging
+		lager          *lagertest.TestLogger
+		ts             *httptest.Server
 	)
 
 	BeforeEach(func() {
 		bifrost = new(eirinifakes.FakeBifrost)
+		bifrostStaging = new(eirinifakes.FakeBifrostStaging)
 		lager = lagertest.NewTestLogger("app-handler-test")
-		ts = httptest.NewServer(New(bifrost, nil, nil, lager))
+		ts = httptest.NewServer(New(bifrost, bifrostStaging, nil, nil, lager))
 	})
 
 	AfterEach(func() {

@@ -1,12 +1,12 @@
-package docker
+package bifrost
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/eirini/models/cf"
-	"code.cloudfoundry.org/eirini/stager"
 	"code.cloudfoundry.org/lager"
 	"github.com/containers/image/types"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -27,11 +27,11 @@ func (f ImageRefParser) Parse(img string) (string, error) {
 	return f(img)
 }
 
-type Stager struct {
+type DockerStaging struct {
 	Logger               lager.Logger
 	ImageMetadataFetcher ImageMetadataFetcher
 	ImageRefParser       ImageRefParser
-	StagingCompleter     stager.StagingCompleter
+	StagingCompleter     StagingCompleter
 }
 
 type StagingResult struct {
@@ -59,7 +59,7 @@ type executionMetadata struct {
 	Ports []port   `json:"ports"`
 }
 
-func (s Stager) Stage(stagingGUID string, request cf.StagingRequest) error {
+func (s DockerStaging) TransferStaging(ctx context.Context, stagingGUID string, request cf.StagingRequest) error {
 	taskCallbackResponse := &models.TaskCallbackResponse{
 		TaskGuid:   stagingGUID,
 		Annotation: fmt.Sprintf(`{"completion_callback": "%s"}`, request.CompletionCallback),
@@ -87,17 +87,17 @@ func (s Stager) Stage(stagingGUID string, request cf.StagingRequest) error {
 	return s.CompleteStaging(taskCallbackResponse)
 }
 
-func (s Stager) respondWithFailure(taskCallbackResponse *models.TaskCallbackResponse, err error) error {
+func (s DockerStaging) respondWithFailure(taskCallbackResponse *models.TaskCallbackResponse, err error) error {
 	taskCallbackResponse.Failed = true
 	taskCallbackResponse.FailureReason = err.Error()
 	return s.CompleteStaging(taskCallbackResponse)
 }
 
-func (s Stager) CompleteStaging(task *models.TaskCallbackResponse) error {
+func (s DockerStaging) CompleteStaging(task *models.TaskCallbackResponse) error {
 	return s.StagingCompleter.CompleteStaging(task)
 }
 
-func (s Stager) getImageConfig(lifecycle *cf.StagingDockerLifecycle) (*v1.ImageConfig, error) {
+func (s DockerStaging) getImageConfig(lifecycle *cf.StagingDockerLifecycle) (*v1.ImageConfig, error) {
 	dockerRef, err := s.ImageRefParser.Parse(lifecycle.Image)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse image ref")

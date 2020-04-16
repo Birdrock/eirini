@@ -7,9 +7,9 @@ import (
 
 	"code.cloudfoundry.org/eirini"
 	"code.cloudfoundry.org/eirini/bifrost"
+	"code.cloudfoundry.org/eirini/bifrost/bifrostfakes"
 	"code.cloudfoundry.org/eirini/models/cf"
 	"code.cloudfoundry.org/eirini/opi"
-	"code.cloudfoundry.org/eirini/stager/docker/dockerfakes"
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -26,16 +26,16 @@ var _ = Describe("OPI Converter", func() {
 		logger              *lagertest.TestLogger
 		err                 error
 		converter           bifrost.Converter
-		imgMetadataFetcher  *dockerfakes.FakeImageMetadataFetcher
-		imgRefParser        *dockerfakes.FakeImageRefParser
+		imgMetadataFetcher  *bifrostfakes.FakeImageMetadataFetcher
+		imgRefParser        *bifrostfakes.FakeImageRefParser
 		allowRunImageAsRoot bool
 		stagerConfig        eirini.StagerConfig
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("converter-test")
-		imgMetadataFetcher = new(dockerfakes.FakeImageMetadataFetcher)
-		imgRefParser = new(dockerfakes.FakeImageRefParser)
+		imgMetadataFetcher = new(bifrostfakes.FakeImageMetadataFetcher)
+		imgRefParser = new(bifrostfakes.FakeImageRefParser)
 		allowRunImageAsRoot = false
 		stagerConfig = eirini.StagerConfig{
 			EiriniAddress:   "http://opi.cf.internal",

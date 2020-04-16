@@ -1,13 +1,13 @@
-package docker_test
+package bifrost_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
+	"code.cloudfoundry.org/eirini/bifrost"
+	"code.cloudfoundry.org/eirini/bifrost/bifrostfakes"
 	"code.cloudfoundry.org/eirini/models/cf"
-	"code.cloudfoundry.org/eirini/stager/docker"
-	"code.cloudfoundry.org/eirini/stager/docker/dockerfakes"
-	"code.cloudfoundry.org/eirini/stager/stagerfakes"
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,10 +17,10 @@ import (
 var _ = Describe("DockerStager", func() {
 
 	var (
-		stager           docker.Stager
-		fetcher          *dockerfakes.FakeImageMetadataFetcher
-		parser           *dockerfakes.FakeImageRefParser
-		stagingCompleter *stagerfakes.FakeStagingCompleter
+		stager           bifrost.DockerStaging
+		fetcher          *bifrostfakes.FakeImageMetadataFetcher
+		parser           *bifrostfakes.FakeImageRefParser
+		stagingCompleter *bifrostfakes.FakeStagingCompleter
 	)
 
 	Context("Stage a docker image", func() {
@@ -31,9 +31,9 @@ var _ = Describe("DockerStager", func() {
 		)
 
 		BeforeEach(func() {
-			fetcher = new(dockerfakes.FakeImageMetadataFetcher)
-			parser = new(dockerfakes.FakeImageRefParser)
-			stagingCompleter = new(stagerfakes.FakeStagingCompleter)
+			fetcher = new(bifrostfakes.FakeImageMetadataFetcher)
+			parser = new(bifrostfakes.FakeImageRefParser)
+			stagingCompleter = new(bifrostfakes.FakeStagingCompleter)
 			stagingRequest = cf.StagingRequest{
 				CompletionCallback: "the-completion-callback/call/me",
 				Lifecycle: cf.StagingLifecycle{
@@ -53,14 +53,14 @@ var _ = Describe("DockerStager", func() {
 		})
 
 		JustBeforeEach(func() {
-			stager = docker.Stager{
+			stager = bifrost.DockerStaging{
 				Logger:               lagertest.NewTestLogger(""),
 				ImageMetadataFetcher: fetcher.Spy,
 				ImageRefParser:       parser.Spy,
 				StagingCompleter:     stagingCompleter,
 			}
 
-			stagingErr = stager.Stage("stg-guid", stagingRequest)
+			stagingErr = stager.TransferStaging(context.Background(), "stg-guid", stagingRequest)
 		})
 
 		It("should succeed", func() {
@@ -87,7 +87,7 @@ var _ = Describe("DockerStager", func() {
 			Expect(task.Failed).To(BeFalse())
 			Expect(task.Annotation).To(Equal(`{"completion_callback": "the-completion-callback/call/me"}`))
 
-			var payload docker.StagingResult
+			var payload bifrost.StagingResult
 			Expect(json.Unmarshal([]byte(task.Result), &payload)).To(Succeed())
 
 			Expect(payload.LifecycleType).To(Equal("docker"))
