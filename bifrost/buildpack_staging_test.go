@@ -8,7 +8,6 @@ import (
 	"github.com/pkg/errors"
 
 	"code.cloudfoundry.org/bbs/models"
-	"code.cloudfoundry.org/eirini"
 	"code.cloudfoundry.org/eirini/bifrost"
 	"code.cloudfoundry.org/eirini/bifrost/bifrostfakes"
 	"code.cloudfoundry.org/eirini/models/cf"
@@ -21,7 +20,7 @@ var _ = Describe("Staging", func() {
 
 	var (
 		err              error
-		bfrstStaging     eirini.BifrostStaging
+		bfrstStaging     *bifrost.BuildpackStaging
 		converter        *bifrostfakes.FakeConverter
 		taskDesirer      *opifakes.FakeTaskDesirer
 		stagingCompleter *bifrostfakes.FakeStagingCompleter

@@ -127,7 +127,7 @@ func initTaskDesirer(cfg *eirini.Config, clientset kubernetes.Interface) opi.Tas
 	}
 }
 
-func initBuildpackStagingBifrost(cfg *eirini.Config, clientset kubernetes.Interface) eirini.BifrostStaging {
+func initBuildpackStagingBifrost(cfg *eirini.Config, clientset kubernetes.Interface) *bifrost.BuildpackStaging {
 	logger := lager.NewLogger("buildpack-staging-bifrost")
 	logger.RegisterSink(lager.NewPrettySink(os.Stdout, lager.DEBUG))
 	converter := initConverter(cfg)
@@ -142,7 +142,7 @@ func initBuildpackStagingBifrost(cfg *eirini.Config, clientset kubernetes.Interf
 	}
 }
 
-func initDockerStagingBifrost(cfg *eirini.Config) eirini.BifrostStaging {
+func initDockerStagingBifrost(cfg *eirini.Config) *bifrost.DockerStaging {
 	logger := lager.NewLogger("docker-staging-bifrost")
 	logger.RegisterSink(lager.NewPrettySink(os.Stdout, lager.DEBUG))
 	stagingCompleter := initStagingCompleter(cfg, logger)
@@ -154,7 +154,7 @@ func initDockerStagingBifrost(cfg *eirini.Config) eirini.BifrostStaging {
 	}
 }
 
-func initBuildpackTaskBifrost(cfg *eirini.Config, clientset kubernetes.Interface) eirini.BifrostTask {
+func initBuildpackTaskBifrost(cfg *eirini.Config, clientset kubernetes.Interface) *bifrost.BuildpackTask {
 	converter := initConverter(cfg)
 	taskDesirer := initTaskDesirer(cfg, clientset)
 	return &bifrost.BuildpackTask{
@@ -163,7 +163,7 @@ func initBuildpackTaskBifrost(cfg *eirini.Config, clientset kubernetes.Interface
 	}
 }
 
-func initBifrost(clientset kubernetes.Interface, cfg *eirini.Config) eirini.Bifrost {
+func initBifrost(clientset kubernetes.Interface, cfg *eirini.Config) *bifrost.Bifrost {
 	kubeNamespace := cfg.Properties.Namespace
 	desireLogger := lager.NewLogger("desirer")
 	desireLogger.RegisterSink(lager.NewPrettySink(os.Stdout, lager.DEBUG))

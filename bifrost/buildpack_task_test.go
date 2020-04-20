@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
-	"code.cloudfoundry.org/eirini"
 	"code.cloudfoundry.org/eirini/bifrost"
 	"code.cloudfoundry.org/eirini/bifrost/bifrostfakes"
 	"code.cloudfoundry.org/eirini/models/cf"
@@ -19,7 +18,7 @@ var _ = Describe("Transfer Task", func() {
 
 	var (
 		err         error
-		bfrstTask   eirini.BifrostTask
+		bfrstTask   *bifrost.BuildpackTask
 		converter   *bifrostfakes.FakeConverter
 		taskDesirer *opifakes.FakeTaskDesirer
 		taskGUID    string

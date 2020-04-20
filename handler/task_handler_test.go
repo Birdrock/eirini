@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"code.cloudfoundry.org/eirini/eirinifakes"
 	. "code.cloudfoundry.org/eirini/handler"
+	"code.cloudfoundry.org/eirini/handler/handlerfakes"
 	"code.cloudfoundry.org/eirini/models/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,7 +20,7 @@ var _ = Describe("TaskHandler", func() {
 	var (
 		ts            *httptest.Server
 		logger        *lagertest.TestLogger
-		buildpackTask *eirinifakes.FakeBifrostTask
+		buildpackTask *handlerfakes.FakeTaskBifrost
 
 		response *http.Response
 		body     string
@@ -30,7 +30,7 @@ var _ = Describe("TaskHandler", func() {
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
-		buildpackTask = new(eirinifakes.FakeBifrostTask)
+		buildpackTask = new(handlerfakes.FakeTaskBifrost)
 
 		method = "POST"
 		path = "/tasks/guid_1234"

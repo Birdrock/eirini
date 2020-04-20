@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/bbs/models"
-	"code.cloudfoundry.org/eirini/eirinifakes"
 	. "code.cloudfoundry.org/eirini/handler"
+	"code.cloudfoundry.org/eirini/handler/handlerfakes"
 	"code.cloudfoundry.org/eirini/models/cf"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/gogo/protobuf/jsonpb"
@@ -23,15 +23,15 @@ import (
 
 var _ = Describe("AppHandler", func() {
 	var (
-		bifrost        *eirinifakes.FakeBifrost
-		bifrostStaging *eirinifakes.FakeBifrostStaging
+		bifrost        *handlerfakes.FakeAppBifrost
+		bifrostStaging *handlerfakes.FakeStagingBifrost
 		lager          *lagertest.TestLogger
 		ts             *httptest.Server
 	)
 
 	BeforeEach(func() {
-		bifrost = new(eirinifakes.FakeBifrost)
-		bifrostStaging = new(eirinifakes.FakeBifrostStaging)
+		bifrost = new(handlerfakes.FakeAppBifrost)
+		bifrostStaging = new(handlerfakes.FakeStagingBifrost)
 		lager = lagertest.NewTestLogger("app-handler-test")
 		ts = httptest.NewServer(New(bifrost, bifrostStaging, nil, nil, lager))
 	})

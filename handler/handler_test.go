@@ -9,8 +9,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/bbs/models"
-	"code.cloudfoundry.org/eirini/eirinifakes"
 	. "code.cloudfoundry.org/eirini/handler"
+	"code.cloudfoundry.org/eirini/handler/handlerfakes"
 	"code.cloudfoundry.org/lager/lagertest"
 )
 
@@ -19,19 +19,19 @@ var _ = Describe("Handler", func() {
 	var (
 		ts               *httptest.Server
 		client           *http.Client
-		bifrost          *eirinifakes.FakeBifrost
-		buildpackStaging *eirinifakes.FakeBifrostStaging
-		dockerStaging    *eirinifakes.FakeBifrostStaging
-		buildpackTask    *eirinifakes.FakeBifrostTask
+		bifrost          *handlerfakes.FakeAppBifrost
+		buildpackStaging *handlerfakes.FakeStagingBifrost
+		dockerStaging    *handlerfakes.FakeStagingBifrost
+		buildpackTask    *handlerfakes.FakeTaskBifrost
 		handlerClient    http.Handler
 	)
 
 	BeforeEach(func() {
 		client = &http.Client{}
-		bifrost = new(eirinifakes.FakeBifrost)
-		buildpackStaging = new(eirinifakes.FakeBifrostStaging)
-		dockerStaging = new(eirinifakes.FakeBifrostStaging)
-		buildpackTask = new(eirinifakes.FakeBifrostTask)
+		bifrost = new(handlerfakes.FakeAppBifrost)
+		buildpackStaging = new(handlerfakes.FakeStagingBifrost)
+		dockerStaging = new(handlerfakes.FakeStagingBifrost)
+		buildpackTask = new(handlerfakes.FakeTaskBifrost)
 
 		lager := lagertest.NewTestLogger("handler-test")
 		handlerClient = New(bifrost, buildpackStaging, dockerStaging, buildpackTask, lager)

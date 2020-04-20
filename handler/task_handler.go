@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"code.cloudfoundry.org/eirini"
 	"code.cloudfoundry.org/eirini/models/cf"
 	"code.cloudfoundry.org/lager"
 	"github.com/julienschmidt/httprouter"
@@ -12,10 +11,10 @@ import (
 
 type Task struct {
 	logger      lager.Logger
-	bifrostTask eirini.BifrostTask
+	bifrostTask TaskBifrost
 }
 
-func NewTaskHandler(logger lager.Logger, bifrostTask eirini.BifrostTask) *Task {
+func NewTaskHandler(logger lager.Logger, bifrostTask TaskBifrost) *Task {
 	return &Task{
 		logger:      logger,
 		bifrostTask: bifrostTask,

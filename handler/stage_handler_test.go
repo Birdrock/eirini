@@ -12,8 +12,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/bbs/models"
-	"code.cloudfoundry.org/eirini/eirinifakes"
 	. "code.cloudfoundry.org/eirini/handler"
+	"code.cloudfoundry.org/eirini/handler/handlerfakes"
 	"code.cloudfoundry.org/eirini/models/cf"
 	"code.cloudfoundry.org/lager/lagertest"
 )
@@ -24,9 +24,9 @@ var _ = Describe("StageHandler", func() {
 		ts     *httptest.Server
 		logger *lagertest.TestLogger
 
-		buildpackStagingClient *eirinifakes.FakeBifrostStaging
-		dockerStagingClient    *eirinifakes.FakeBifrostStaging
-		bifrostTaskClient      *eirinifakes.FakeBifrostTask
+		buildpackStagingClient *handlerfakes.FakeStagingBifrost
+		dockerStagingClient    *handlerfakes.FakeStagingBifrost
+		bifrostTaskClient      *handlerfakes.FakeTaskBifrost
 		response               *http.Response
 		body                   string
 		path                   string
@@ -35,9 +35,9 @@ var _ = Describe("StageHandler", func() {
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
-		buildpackStagingClient = new(eirinifakes.FakeBifrostStaging)
-		dockerStagingClient = new(eirinifakes.FakeBifrostStaging)
-		bifrostTaskClient = new(eirinifakes.FakeBifrostTask)
+		buildpackStagingClient = new(handlerfakes.FakeStagingBifrost)
+		dockerStagingClient = new(handlerfakes.FakeStagingBifrost)
+		bifrostTaskClient = new(handlerfakes.FakeTaskBifrost)
 	})
 
 	JustBeforeEach(func() {

@@ -6,7 +6,6 @@ import (
 	"errors"
 
 	"code.cloudfoundry.org/bbs/models"
-	"code.cloudfoundry.org/eirini"
 	"code.cloudfoundry.org/eirini/bifrost"
 	"code.cloudfoundry.org/eirini/bifrost/bifrostfakes"
 	"code.cloudfoundry.org/eirini/models/cf"
@@ -20,7 +19,7 @@ var _ = Describe("Bifrost", func() {
 
 	var (
 		err       error
-		bfrst     eirini.Bifrost
+		bfrst     *bifrost.Bifrost
 		request   cf.DesireLRPRequest
 		converter *bifrostfakes.FakeConverter
 		desirer   *opifakes.FakeDesirer
