@@ -206,6 +206,18 @@ func updateLRP(httpClient rest.HTTPClient, opiURL string, updateRequest cf.Updat
 	return httpClient.Do(updateLrpReq)
 }
 
+func stageLRP(httpClient rest.HTTPClient, opiURL, stagingGUID string, stagingRequest cf.StagingRequest) (*http.Response, error) {
+	body, err := json.Marshal(stagingRequest)
+	if err != nil {
+		return nil, err
+	}
+	stageLrpReq, err := http.NewRequest("POST", fmt.Sprintf("%s/stage/%s", opiURL, stagingGUID), bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	return httpClient.Do(stageLrpReq)
+}
+
 func writeTempFile(content []byte, fileName string) string {
 	configFile, err := ioutil.TempFile("", fileName)
 	Expect(err).ToNot(HaveOccurred())
