@@ -18,12 +18,17 @@ const (
 	EnvBuildpackCacheArtifactsDir      = "EIRINI_BUILD_ARTIFACTS_CACHE_DIR"
 	EnvBuildpackCacheOutputArtifact    = "EIRINI_OUTPUT_BUILD_ARTIFACTS_CACHE"
 
-	EnvPodName              = "POD_NAME"
+	EnvPodName = "POD_NAME"
+
+	// see https://docs.cloudfoundry.org/devguide/deploy-apps/environment-variable.html
 	EnvCFInstanceIP         = "CF_INSTANCE_IP"
 	EnvCFInstanceInternalIP = "CF_INSTANCE_INTERNAL_IP"
 	EnvCFInstanceAddr       = "CF_INSTANCE_ADDR"
+	EnvCFInstanceGUID       = "CF_INSTANCE_GUID"
+	EnvCFInstanceIndex      = "CF_INSTANCE_INDEX"
 	EnvCFInstancePort       = "CF_INSTANCE_PORT"
 	EnvCFInstancePorts      = "CF_INSTANCE_PORTS"
+	EnvVCAPApplication      = "VCAP_APPLICATION"
 
 	RecipeBuildPacksDir    = "/var/lib/buildpacks"
 	RecipeBuildPacksName   = "recipe-buildpacks"

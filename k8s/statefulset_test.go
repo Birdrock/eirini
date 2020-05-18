@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -181,6 +182,32 @@ var _ = Describe("Statefulset Desirer", func() {
 		It("should set imagePullPolicy to Always", func() {
 			statefulSet := statefulSetClient.CreateArgsForCall(0)
 			Expect(string(statefulSet.Spec.Template.Spec.Containers[0].ImagePullPolicy)).To(Equal("Always"))
+		})
+
+		FIt("should set the standard CF env vars", func() {
+			statefulSet := statefulSetClient.CreateArgsForCall(0)
+			container := statefulSet.Spec.Template.Spec.Containers[0]
+
+			expectedValFrom := func(fieldPath string) *v1.EnvVarSource {
+				return &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						APIVersion: "",
+						FieldPath:  fieldPath,
+					},
+				}
+			}
+
+			// see https://docs.cloudfoundry.org/devguide/deploy-apps/environment-variable.html
+			Expect(container.Env).To(SatisfyAll(
+				ContainElement(v1.EnvVar{Name: eirini.EnvCFInstanceAddr, Value: ""}),
+				ContainElement(v1.EnvVar{Name: eirini.EnvCFInstanceGUID, Value: ""}),
+				ContainElement(v1.EnvVar{Name: eirini.EnvCFInstanceIndex, Value: ""}),
+				ContainElement(v1.EnvVar{Name: eirini.EnvCFInstanceInternalIP, ValueFrom: expectedValFrom("status.podIP")}),
+				ContainElement(v1.EnvVar{Name: eirini.EnvCFInstanceIP, ValueFrom: expectedValFrom("status.podIP")}),
+				ContainElement(v1.EnvVar{Name: eirini.EnvCFInstancePort, Value: ""}),
+				ContainElement(v1.EnvVar{Name: eirini.EnvCFInstancePorts, Value: "[]"}),
+				ContainElement(v1.EnvVar{Name: eirini.EnvVCAPApplication, Value: ""}),
+			))
 		})
 
 		It("should set rootfsVersion as a label", func() {
