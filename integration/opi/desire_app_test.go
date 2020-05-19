@@ -47,36 +47,34 @@ var _ = Describe("Desire App", func() {
 		Expect(statefulsets.Items[0].Name).To(ContainSubstring("the-app-guid"))
 	})
 
-	FIt("sets the cf instance index env var on each container", func() {
-		Eventually(func() int32 {
+	waitTillSetReady := func() {
+		EventuallyWithOffset(1, func() bool {
 			statefulsets, err := fixture.Clientset.AppsV1().StatefulSets(fixture.Namespace).List(metav1.ListOptions{})
-			if err != nil {
-				return -1
+			if err != nil || len(statefulsets.Items) != 1 {
+				return false
 			}
+			return statefulsets.Items[0].Status.ReadyReplicas == *statefulsets.Items[0].Spec.Replicas
+		}, "10s").Should(BeTrue())
+	}
 
-			if len(statefulsets.Items) != 1 {
-				return -1
-			}
-			return statefulsets.Items[0].Status.ReadyReplicas
-		}, "10s").Should(Equal(int32(2)))
-
-		pods, err := fixture.Clientset.CoreV1().Pods(fixture.Namespace).List(metav1.ListOptions{})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(pods.Items).To(HaveLen(2))
-
-		containers := pods.Items[0].Spec.Containers
-
-		req := fixture.Clientset.CoreV1().Pods(fixture.Namespace).GetLogs(pods.Items[0].Name, &v1.PodLogOptions{})
-		logs, err := req.Stream()
-		Expect(err).NotTo(HaveOccurred())
+	logsForPod := func(idx int) string {
+		pods := fixture.Clientset.CoreV1().Pods(fixture.Namespace)
+		podList, err := pods.List(metav1.ListOptions{})
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		logs, err := pods.GetLogs(podList.Items[idx].Name, &v1.PodLogOptions{}).Stream()
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 		defer logs.Close()
 		logBytes, err := ioutil.ReadAll(logs)
-		Expect(err).NotTo(HaveOccurred())
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		return string(logBytes)
+	}
 
-		Expect(string(logBytes)).To(Equal("jim"))
-
-		instanceIds := []string{getEnvVar(containers[0], eirini.EnvCFInstanceIndex), getEnvVar(containers[1], eirini.EnvCFInstanceIndex)}
-		Expect(instanceIds).To(ConsistOf("1", "2"))
+	FIt("sets the CF_INSTANCE_INDEX env var on each container", func() {
+		waitTillSetReady()
+		for i := 0; i < 2; i++ {
+			logs := logsForPod(i)
+			Expect(logs).To(ContainSubstring(fmt.Sprintf("%s=%d\n", eirini.EnvCFInstanceIndex, i)))
+		}
 	})
 
 	Context("when the app has user defined annotations", func() {
