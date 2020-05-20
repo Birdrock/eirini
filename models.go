@@ -143,3 +143,10 @@ type StagerConfig struct {
 	UploaderImage   string
 	ExecutorImage   string
 }
+
+type NamespaceControllerConfig struct {
+	ReleaseNamespace string `yaml:"release_namespace"`
+	TemplatesPath    string `yaml:"templates_path"`
+
+	KubeConfig `yaml:",inline"`
+}

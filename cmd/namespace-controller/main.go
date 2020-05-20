@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
+	"text/template"
 	"time"
 
 	"code.cloudfoundry.org/eirini"
@@ -30,6 +33,11 @@ type options struct {
 	ConfigFile string `short:"c" long:"config" description:"Config for running staging-reporter"`
 }
 
+type templateConfig struct {
+	ReleaseNamespace string
+	LrpNamespace     string
+}
+
 func main() {
 	klog.SetOutput(os.Stdout)
 	klog.SetOutputBySeverity("Fatal", os.Stderr)
@@ -43,19 +51,19 @@ func main() {
 
 	kubeClient, lrpnsClient := getKubernetesClients(cfg.ConfigPath)
 
-	startLrpNamespaceInformer(kubeClient, lrpnsClient)
-	go startNamespaceReconciler(kubeClient, lrpnsClient)
+	startLrpNamespaceInformer(cfg, kubeClient, lrpnsClient)
+	go runNamespaceReconciler(cfg, kubeClient, lrpnsClient)
 
 	<-wait.NeverStop
 }
 
-func startLrpNamespaceInformer(kubeClient kubernetes.Interface, lrpnsClient lrpnsclientset.Interface) {
+func startLrpNamespaceInformer(cfg *eirini.NamespaceControllerConfig, kubeClient kubernetes.Interface, lrpnsClient lrpnsclientset.Interface) {
 	informerFactory := informers.NewSharedInformerFactory(lrpnsClient, 0)
 	informer := informerFactory.Lrpnamespace().V1().LrpNamespaces().Informer()
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(object interface{}) {
-			createNamespace(kubeClient, object.(*lrpns.LrpNamespace))
+			createNamespace(cfg, kubeClient, object.(*lrpns.LrpNamespace))
 		},
 		DeleteFunc: func(object interface{}) {
 			deleteNamespace(kubeClient, object.(*lrpns.LrpNamespace))
@@ -64,7 +72,7 @@ func startLrpNamespaceInformer(kubeClient kubernetes.Interface, lrpnsClient lrpn
 	informerFactory.Start(wait.NeverStop)
 }
 
-func startNamespaceReconciler(kubeClient kubernetes.Interface, lrpnsClient lrpnsclientset.Interface) {
+func runNamespaceReconciler(cfg *eirini.NamespaceControllerConfig, kubeClient kubernetes.Interface, lrpnsClient lrpnsclientset.Interface) {
 	for range time.Tick(5 * time.Second) {
 		lrpNamespaces, err := lrpnsClient.LrpnamespaceV1().LrpNamespaces().List(metav1.ListOptions{})
 		if err != nil {
@@ -79,7 +87,7 @@ func startNamespaceReconciler(kubeClient kubernetes.Interface, lrpnsClient lrpns
 			}
 
 			if !exists {
-				createNamespace(kubeClient, &lrpns)
+				createNamespace(cfg, kubeClient, &lrpns)
 				continue
 			}
 		}
@@ -99,7 +107,7 @@ func kubeNsExists(kubeClient kubernetes.Interface, namespace string) (bool, erro
 	return err == nil, err
 }
 
-func createNamespace(kubeClient kubernetes.Interface, lrpNamespace *lrpns.LrpNamespace) {
+func createNamespace(cfg *eirini.NamespaceControllerConfig, kubeClient kubernetes.Interface, lrpNamespace *lrpns.LrpNamespace) {
 	klog.Infof("creating namespace %q", lrpNamespace.Name)
 
 	kubeNamespace := corev1.Namespace{
@@ -110,6 +118,16 @@ func createNamespace(kubeClient kubernetes.Interface, lrpNamespace *lrpns.LrpNam
 	_, err := kubeClient.CoreV1().Namespaces().Create(&kubeNamespace)
 	if err != nil {
 		klog.Errorf("failed to create namespace %q: %v", lrpNamespace.Name, err)
+		return
+	}
+
+	templateCfg := templateConfig{
+		ReleaseNamespace: cfg.ReleaseNamespace,
+		LrpNamespace:     lrpNamespace.Name,
+	}
+	if err := createTemplatedObjects(templateCfg, cfg.TemplatesPath); err != nil {
+		klog.Errorf("failed to create templated objects: %v", err)
+		return
 	}
 }
 
@@ -138,13 +156,47 @@ func getKubernetesClients(kubeConfigPath string) (kubernetes.Interface, lrpnscli
 	return kubeClient, namespaceClient
 }
 
-func readConfigFile(path string) (*eirini.ReporterConfig, error) {
+func readConfigFile(path string) (*eirini.NamespaceControllerConfig, error) {
 	fileBytes, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read file")
 	}
 
-	var conf eirini.ReporterConfig
+	var conf eirini.NamespaceControllerConfig
 	err = yaml.Unmarshal(fileBytes, &conf)
 	return &conf, errors.Wrap(err, "failed to unmarshal yaml")
+}
+
+func createTemplatedObjects(templateCfg templateConfig, templatePath string) error {
+	return filepath.Walk(templatePath, func(path string, fInfo os.FileInfo, errIn error) error {
+		if errIn != nil {
+			return errIn
+		}
+
+		// TODO: Think about a better way to filter out non template entries, such a dirs, random metadata files, etc.
+		if filepath.Ext(fInfo.Name()) != ".yml" {
+			klog.Infof("will not generate objects for file %s", filepath.Join(templatePath, fInfo.Name()))
+			return nil
+		}
+
+		if err := createTemplatedObject(filepath.Join(templatePath, fInfo.Name()), templateCfg); err != nil {
+			return fmt.Errorf("failed to create templated object for template file %s: %v", fInfo.Name(), err)
+		}
+		return nil
+	})
+}
+
+func createTemplatedObject(templateFilePath string, templateCfg templateConfig) error {
+	tmpl, err := template.New(templateFilePath).ParseFiles(templateFilePath)
+	if err != nil {
+		return err
+	}
+
+	var buffer strings.Builder
+	if err := tmpl.Execute(&buffer, templateCfg); err != nil {
+		return err
+	}
+
+	klog.Infof("I would have created the following object: \n%s\n", buffer.String())
+	return nil
 }
