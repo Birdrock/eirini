@@ -41,5 +41,5 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 
 // LrpNamespaces returns a LrpNamespaceInformer.
 func (v *version) LrpNamespaces() LrpNamespaceInformer {
-	return &lrpNamespaceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+	return &lrpNamespaceInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

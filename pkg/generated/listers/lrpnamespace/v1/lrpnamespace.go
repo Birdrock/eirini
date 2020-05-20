@@ -29,8 +29,8 @@ import (
 type LrpNamespaceLister interface {
 	// List lists all LrpNamespaces in the indexer.
 	List(selector labels.Selector) (ret []*v1.LrpNamespace, err error)
-	// LrpNamespaces returns an object that can list and get LrpNamespaces.
-	LrpNamespaces(namespace string) LrpNamespaceNamespaceLister
+	// Get retrieves the LrpNamespace from the index for a given name.
+	Get(name string) (*v1.LrpNamespace, error)
 	LrpNamespaceListerExpansion
 }
 
@@ -52,38 +52,9 @@ func (s *lrpNamespaceLister) List(selector labels.Selector) (ret []*v1.LrpNamesp
 	return ret, err
 }
 
-// LrpNamespaces returns an object that can list and get LrpNamespaces.
-func (s *lrpNamespaceLister) LrpNamespaces(namespace string) LrpNamespaceNamespaceLister {
-	return lrpNamespaceNamespaceLister{indexer: s.indexer, namespace: namespace}
-}
-
-// LrpNamespaceNamespaceLister helps list and get LrpNamespaces.
-type LrpNamespaceNamespaceLister interface {
-	// List lists all LrpNamespaces in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*v1.LrpNamespace, err error)
-	// Get retrieves the LrpNamespace from the indexer for a given namespace and name.
-	Get(name string) (*v1.LrpNamespace, error)
-	LrpNamespaceNamespaceListerExpansion
-}
-
-// lrpNamespaceNamespaceLister implements the LrpNamespaceNamespaceLister
-// interface.
-type lrpNamespaceNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all LrpNamespaces in the indexer for a given namespace.
-func (s lrpNamespaceNamespaceLister) List(selector labels.Selector) (ret []*v1.LrpNamespace, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1.LrpNamespace))
-	})
-	return ret, err
-}
-
-// Get retrieves the LrpNamespace from the indexer for a given namespace and name.
-func (s lrpNamespaceNamespaceLister) Get(name string) (*v1.LrpNamespace, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
+// Get retrieves the LrpNamespace from the index for a given name.
+func (s *lrpNamespaceLister) Get(name string) (*v1.LrpNamespace, error) {
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}

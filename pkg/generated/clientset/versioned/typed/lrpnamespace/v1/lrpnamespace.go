@@ -32,7 +32,7 @@ import (
 // LrpNamespacesGetter has a method to return a LrpNamespaceInterface.
 // A group's client should implement this interface.
 type LrpNamespacesGetter interface {
-	LrpNamespaces(namespace string) LrpNamespaceInterface
+	LrpNamespaces() LrpNamespaceInterface
 }
 
 // LrpNamespaceInterface has methods to work with LrpNamespace resources.
@@ -51,14 +51,12 @@ type LrpNamespaceInterface interface {
 // lrpNamespaces implements LrpNamespaceInterface
 type lrpNamespaces struct {
 	client rest.Interface
-	ns     string
 }
 
 // newLrpNamespaces returns a LrpNamespaces
-func newLrpNamespaces(c *LrpnamespaceV1Client, namespace string) *lrpNamespaces {
+func newLrpNamespaces(c *LrpnamespaceV1Client) *lrpNamespaces {
 	return &lrpNamespaces{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -66,7 +64,6 @@ func newLrpNamespaces(c *LrpnamespaceV1Client, namespace string) *lrpNamespaces 
 func (c *lrpNamespaces) Get(name string, options metav1.GetOptions) (result *v1.LrpNamespace, err error) {
 	result = &v1.LrpNamespace{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("lrpnamespaces").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -83,7 +80,6 @@ func (c *lrpNamespaces) List(opts metav1.ListOptions) (result *v1.LrpNamespaceLi
 	}
 	result = &v1.LrpNamespaceList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("lrpnamespaces").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -100,7 +96,6 @@ func (c *lrpNamespaces) Watch(opts metav1.ListOptions) (watch.Interface, error) 
 	}
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("lrpnamespaces").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -111,7 +106,6 @@ func (c *lrpNamespaces) Watch(opts metav1.ListOptions) (watch.Interface, error) 
 func (c *lrpNamespaces) Create(lrpNamespace *v1.LrpNamespace) (result *v1.LrpNamespace, err error) {
 	result = &v1.LrpNamespace{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("lrpnamespaces").
 		Body(lrpNamespace).
 		Do().
@@ -123,7 +117,6 @@ func (c *lrpNamespaces) Create(lrpNamespace *v1.LrpNamespace) (result *v1.LrpNam
 func (c *lrpNamespaces) Update(lrpNamespace *v1.LrpNamespace) (result *v1.LrpNamespace, err error) {
 	result = &v1.LrpNamespace{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("lrpnamespaces").
 		Name(lrpNamespace.Name).
 		Body(lrpNamespace).
@@ -135,7 +128,6 @@ func (c *lrpNamespaces) Update(lrpNamespace *v1.LrpNamespace) (result *v1.LrpNam
 // Delete takes name of the lrpNamespace and deletes it. Returns an error if one occurs.
 func (c *lrpNamespaces) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("lrpnamespaces").
 		Name(name).
 		Body(options).
@@ -150,7 +142,6 @@ func (c *lrpNamespaces) DeleteCollection(options *metav1.DeleteOptions, listOpti
 		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("lrpnamespaces").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -163,7 +154,6 @@ func (c *lrpNamespaces) DeleteCollection(options *metav1.DeleteOptions, listOpti
 func (c *lrpNamespaces) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.LrpNamespace, err error) {
 	result = &v1.LrpNamespace{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("lrpnamespaces").
 		SubResource(subresources...).
 		Name(name).

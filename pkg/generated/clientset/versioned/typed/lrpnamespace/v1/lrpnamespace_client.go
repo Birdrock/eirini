@@ -34,8 +34,8 @@ type LrpnamespaceV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *LrpnamespaceV1Client) LrpNamespaces(namespace string) LrpNamespaceInterface {
-	return newLrpNamespaces(c, namespace)
+func (c *LrpnamespaceV1Client) LrpNamespaces() LrpNamespaceInterface {
+	return newLrpNamespaces(c)
 }
 
 // NewForConfig creates a new LrpnamespaceV1Client for the given config.

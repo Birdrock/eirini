@@ -21,7 +21,3 @@ package v1
 // LrpNamespaceListerExpansion allows custom methods to be added to
 // LrpNamespaceLister.
 type LrpNamespaceListerExpansion interface{}
-
-// LrpNamespaceNamespaceListerExpansion allows custom methods to be added to
-// LrpNamespaceNamespaceLister.
-type LrpNamespaceNamespaceListerExpansion interface{}

@@ -6,6 +6,7 @@ import (
 
 // +genclient
 // +genclient:noStatus
+// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // LrpNamespace describes an LrpNamespace resource
@@ -18,7 +19,6 @@ type LrpNamespace struct {
 
 // LrpNamespaceSpec is the spec for a LrpNamespace resource
 type LrpNamespaceSpec struct {
-	Name string `json:"name"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

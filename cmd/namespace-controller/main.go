@@ -17,8 +17,13 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 
-	nsclientset "code.cloudfoundry.org/eirini/pkg/generated/clientset/versioned"
+	lrpns "code.cloudfoundry.org/eirini/pkg/apis/lrpnamespace/v1"
+	lrpnsclientset "code.cloudfoundry.org/eirini/pkg/generated/clientset/versioned"
+
 	informers "code.cloudfoundry.org/eirini/pkg/generated/informers/externalversions"
+	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type options struct {
@@ -36,35 +41,91 @@ func main() {
 	cfg, err := readConfigFile(opts.ConfigFile)
 	cmdcommons.ExitIfError(err)
 
-	/*kubeClient,*/
-	_, nsClient := getKubernetesClient(cfg.ConfigPath)
+	kubeClient, lrpnsClient := getKubernetesClients(cfg.ConfigPath)
 
-	informerFactory := informers.NewSharedInformerFactory(nsClient, time.Second)
+	startLrpNamespaceInformer(kubeClient, lrpnsClient)
+	go startNamespaceReconciler(kubeClient, lrpnsClient)
+
+	<-wait.NeverStop
+}
+
+func startLrpNamespaceInformer(kubeClient kubernetes.Interface, lrpnsClient lrpnsclientset.Interface) {
+	informerFactory := informers.NewSharedInformerFactory(lrpnsClient, 0)
 	informer := informerFactory.Lrpnamespace().V1().LrpNamespaces().Informer()
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(object interface{}) {
-			klog.Infof("[NSController] Added: %v", object)
-		},
-		UpdateFunc: func(oldObject, newObject interface{}) {
-			klog.Infof("[NSController] Updated: %v", newObject)
+			createNamespace(kubeClient, object.(*lrpns.LrpNamespace))
 		},
 		DeleteFunc: func(object interface{}) {
-			klog.Infof("[NSController] Deleted: %v", object)
+			deleteNamespace(kubeClient, object.(*lrpns.LrpNamespace))
 		},
 	})
-
 	informerFactory.Start(wait.NeverStop)
-	klog.Info("Informer factory started")
-	<-wait.NeverStop
-	klog.Info("Informer factory stopping")
 }
 
-func getKubernetesClient(kubeConfigPath string) (kubernetes.Interface, nsclientset.Interface) {
+func startNamespaceReconciler(kubeClient kubernetes.Interface, lrpnsClient lrpnsclientset.Interface) {
+	for range time.Tick(5 * time.Second) {
+		lrpNamespaces, err := lrpnsClient.LrpnamespaceV1().LrpNamespaces().List(metav1.ListOptions{})
+		if err != nil {
+			klog.Errorf("failed to list lrpnamespaces: %v", err)
+			continue
+		}
+		for _, lrpns := range lrpNamespaces.Items {
+			exists, err := kubeNsExists(kubeClient, lrpns.Name)
+			if err != nil {
+				klog.Errorf("failed to check whether kube namespace %q exists: %v", lrpns.Name, err)
+				continue
+			}
+
+			if !exists {
+				createNamespace(kubeClient, &lrpns)
+				continue
+			}
+		}
+	}
+}
+
+func kubeNsExists(kubeClient kubernetes.Interface, namespace string) (bool, error) {
+	kubens, err := kubeClient.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
+	if err == nil {
+		return kubens != nil, nil
+	}
+	var statusErr k8serrors.StatusError
+	if errors.As(err, statusErr) && statusErr.Status().Reason == metav1.StatusReasonNotFound {
+		return false, nil
+	}
+
+	return err == nil, err
+}
+
+func createNamespace(kubeClient kubernetes.Interface, lrpNamespace *lrpns.LrpNamespace) {
+	klog.Infof("creating namespace %q", lrpNamespace.Name)
+
+	kubeNamespace := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: lrpNamespace.Name,
+		},
+	}
+	_, err := kubeClient.CoreV1().Namespaces().Create(&kubeNamespace)
+	if err != nil {
+		klog.Errorf("failed to create namespace %q: %v", lrpNamespace.Name, err)
+	}
+}
+
+func deleteNamespace(kubeClient kubernetes.Interface, lrpNamespace *lrpns.LrpNamespace) {
+	klog.Infof("deleting namespace %q", lrpNamespace.Name)
+
+	if err := kubeClient.CoreV1().Namespaces().Delete(lrpNamespace.Name, &metav1.DeleteOptions{}); err != nil {
+		klog.Errorf("failed to delete namespace %q: %v", lrpNamespace.Name, err)
+	}
+}
+
+func getKubernetesClients(kubeConfigPath string) (kubernetes.Interface, lrpnsclientset.Interface) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
 	cmdcommons.ExitIfError(err)
 
-	namespaceClient, err := nsclientset.NewForConfig(config)
+	namespaceClient, err := lrpnsclientset.NewForConfig(config)
 	if err != nil {
 		klog.Fatalf("getClusterConfig: %v", err)
 	}

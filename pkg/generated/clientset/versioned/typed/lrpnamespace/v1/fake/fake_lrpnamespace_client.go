@@ -28,8 +28,8 @@ type FakeLrpnamespaceV1 struct {
 	*testing.Fake
 }
 
-func (c *FakeLrpnamespaceV1) LrpNamespaces(namespace string) v1.LrpNamespaceInterface {
-	return &FakeLrpNamespaces{c, namespace}
+func (c *FakeLrpnamespaceV1) LrpNamespaces() v1.LrpNamespaceInterface {
+	return &FakeLrpNamespaces{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

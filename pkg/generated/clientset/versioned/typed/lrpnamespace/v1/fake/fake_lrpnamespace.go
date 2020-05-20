@@ -31,7 +31,6 @@ import (
 // FakeLrpNamespaces implements LrpNamespaceInterface
 type FakeLrpNamespaces struct {
 	Fake *FakeLrpnamespaceV1
-	ns   string
 }
 
 var lrpnamespacesResource = schema.GroupVersionResource{Group: "lrpnamespace", Version: "v1", Resource: "lrpnamespaces"}
@@ -41,8 +40,7 @@ var lrpnamespacesKind = schema.GroupVersionKind{Group: "lrpnamespace", Version: 
 // Get takes name of the lrpNamespace, and returns the corresponding lrpNamespace object, and an error if there is any.
 func (c *FakeLrpNamespaces) Get(name string, options v1.GetOptions) (result *lrpnamespacev1.LrpNamespace, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(lrpnamespacesResource, c.ns, name), &lrpnamespacev1.LrpNamespace{})
-
+		Invokes(testing.NewRootGetAction(lrpnamespacesResource, name), &lrpnamespacev1.LrpNamespace{})
 	if obj == nil {
 		return nil, err
 	}
@@ -52,8 +50,7 @@ func (c *FakeLrpNamespaces) Get(name string, options v1.GetOptions) (result *lrp
 // List takes label and field selectors, and returns the list of LrpNamespaces that match those selectors.
 func (c *FakeLrpNamespaces) List(opts v1.ListOptions) (result *lrpnamespacev1.LrpNamespaceList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(lrpnamespacesResource, lrpnamespacesKind, c.ns, opts), &lrpnamespacev1.LrpNamespaceList{})
-
+		Invokes(testing.NewRootListAction(lrpnamespacesResource, lrpnamespacesKind, opts), &lrpnamespacev1.LrpNamespaceList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -74,15 +71,13 @@ func (c *FakeLrpNamespaces) List(opts v1.ListOptions) (result *lrpnamespacev1.Lr
 // Watch returns a watch.Interface that watches the requested lrpNamespaces.
 func (c *FakeLrpNamespaces) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchAction(lrpnamespacesResource, c.ns, opts))
-
+		InvokesWatch(testing.NewRootWatchAction(lrpnamespacesResource, opts))
 }
 
 // Create takes the representation of a lrpNamespace and creates it.  Returns the server's representation of the lrpNamespace, and an error, if there is any.
 func (c *FakeLrpNamespaces) Create(lrpNamespace *lrpnamespacev1.LrpNamespace) (result *lrpnamespacev1.LrpNamespace, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(lrpnamespacesResource, c.ns, lrpNamespace), &lrpnamespacev1.LrpNamespace{})
-
+		Invokes(testing.NewRootCreateAction(lrpnamespacesResource, lrpNamespace), &lrpnamespacev1.LrpNamespace{})
 	if obj == nil {
 		return nil, err
 	}
@@ -92,8 +87,7 @@ func (c *FakeLrpNamespaces) Create(lrpNamespace *lrpnamespacev1.LrpNamespace) (r
 // Update takes the representation of a lrpNamespace and updates it. Returns the server's representation of the lrpNamespace, and an error, if there is any.
 func (c *FakeLrpNamespaces) Update(lrpNamespace *lrpnamespacev1.LrpNamespace) (result *lrpnamespacev1.LrpNamespace, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(lrpnamespacesResource, c.ns, lrpNamespace), &lrpnamespacev1.LrpNamespace{})
-
+		Invokes(testing.NewRootUpdateAction(lrpnamespacesResource, lrpNamespace), &lrpnamespacev1.LrpNamespace{})
 	if obj == nil {
 		return nil, err
 	}
@@ -103,14 +97,13 @@ func (c *FakeLrpNamespaces) Update(lrpNamespace *lrpnamespacev1.LrpNamespace) (r
 // Delete takes name of the lrpNamespace and deletes it. Returns an error if one occurs.
 func (c *FakeLrpNamespaces) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(lrpnamespacesResource, c.ns, name), &lrpnamespacev1.LrpNamespace{})
-
+		Invokes(testing.NewRootDeleteAction(lrpnamespacesResource, name), &lrpnamespacev1.LrpNamespace{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeLrpNamespaces) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(lrpnamespacesResource, c.ns, listOptions)
+	action := testing.NewRootDeleteCollectionAction(lrpnamespacesResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &lrpnamespacev1.LrpNamespaceList{})
 	return err
@@ -119,8 +112,7 @@ func (c *FakeLrpNamespaces) DeleteCollection(options *v1.DeleteOptions, listOpti
 // Patch applies the patch and returns the patched lrpNamespace.
 func (c *FakeLrpNamespaces) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *lrpnamespacev1.LrpNamespace, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(lrpnamespacesResource, c.ns, name, pt, data, subresources...), &lrpnamespacev1.LrpNamespace{})
-
+		Invokes(testing.NewRootPatchSubresourceAction(lrpnamespacesResource, name, pt, data, subresources...), &lrpnamespacev1.LrpNamespace{})
 	if obj == nil {
 		return nil, err
 	}
