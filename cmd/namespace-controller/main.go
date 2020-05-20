@@ -55,7 +55,9 @@ func main() {
 	})
 
 	informerFactory.Start(wait.NeverStop)
-
+	klog.Info("Informer factory started")
+	<-wait.NeverStop
+	klog.Info("Informer factory stopping")
 }
 
 func getKubernetesClient(kubeConfigPath string) (kubernetes.Interface, nsclientset.Interface) {
@@ -67,8 +69,12 @@ func getKubernetesClient(kubeConfigPath string) (kubernetes.Interface, nsclients
 		klog.Fatalf("getClusterConfig: %v", err)
 	}
 
-	klog.Info("Successfully constructed k8s client")
-	return cmdcommons.CreateKubeClient(kubeConfigPath), namespaceClient
+	klog.Info("Successfully constructed lrpnamespace client")
+
+	kubeClient := cmdcommons.CreateKubeClient(kubeConfigPath)
+	klog.Info("Successfully constructed kube client")
+
+	return kubeClient, namespaceClient
 }
 
 func readConfigFile(path string) (*eirini.ReporterConfig, error) {

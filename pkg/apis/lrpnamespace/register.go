@@ -1,3 +1,3 @@
 package lrpnamespace
 
-const GroupName = "lrpnamespace"
+const GroupName = "eirini.cloudfoundry.org"
