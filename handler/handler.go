@@ -2,6 +2,8 @@ package handler
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"code.cloudfoundry.org/eirini/models/cf"
@@ -47,6 +49,7 @@ func New(lrpBifrost LRPBifrost,
 	registerAppsEndpoints(handler, appHandler)
 	registerStageEndpoints(handler, stageHandler)
 	registerTaskEndpoints(handler, taskHandler)
+	registerHookEndpoints(handler)
 
 	return handler
 }
@@ -69,4 +72,17 @@ func registerStageEndpoints(handler *httprouter.Router, stageHandler *Stage) {
 func registerTaskEndpoints(handler *httprouter.Router, taskHandler *Task) {
 	handler.POST("/tasks/:task_guid", taskHandler.Run)
 	handler.PUT("/tasks/:task_guid/completed", taskHandler.CompleteTask)
+}
+
+func registerHookEndpoints(handler *httprouter.Router) {
+	handler.POST("/mutate", webhook)
+}
+
+func webhook(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	bytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Printf("boom: %s\n", err.Error())
+	}
+	fmt.Printf("BODY: %s\n", string(bytes))
+	r.Body.Close()
 }

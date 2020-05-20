@@ -59,7 +59,7 @@ func connect(cmd *cobra.Command, args []string) {
 	tlsConfig, err := tlsconfig.Build(
 		tlsconfig.WithInternalServiceDefaults(),
 	).Server(
-		tlsconfig.WithClientAuthenticationFromFile(cfg.Properties.ClientCAPath),
+	// tlsconfig.WithClientAuthenticationFromFile(cfg.Properties.ClientCAPath),
 	)
 	cmdcommons.ExitIfError(err)
 
