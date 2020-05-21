@@ -19,6 +19,7 @@ limitations under the License.
 package fake
 
 import (
+	eiriniv1 "code.cloudfoundry.org/eirini/pkg/apis/lrp/v1"
 	lrpnamespacev1 "code.cloudfoundry.org/eirini/pkg/apis/lrpnamespace/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -31,6 +32,7 @@ var scheme = runtime.NewScheme()
 var codecs = serializer.NewCodecFactory(scheme)
 var parameterCodec = runtime.NewParameterCodec(scheme)
 var localSchemeBuilder = runtime.SchemeBuilder{
+	eiriniv1.AddToScheme,
 	lrpnamespacev1.AddToScheme,
 }
 

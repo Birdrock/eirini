@@ -21,6 +21,7 @@ package versioned
 import (
 	"fmt"
 
+	eiriniv1 "code.cloudfoundry.org/eirini/pkg/generated/clientset/versioned/typed/lrp/v1"
 	lrpnamespacev1 "code.cloudfoundry.org/eirini/pkg/generated/clientset/versioned/typed/lrpnamespace/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
@@ -29,6 +30,7 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
+	EiriniV1() eiriniv1.EiriniV1Interface
 	LrpnamespaceV1() lrpnamespacev1.LrpnamespaceV1Interface
 }
 
@@ -36,7 +38,13 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
+	eiriniV1       *eiriniv1.EiriniV1Client
 	lrpnamespaceV1 *lrpnamespacev1.LrpnamespaceV1Client
+}
+
+// EiriniV1 retrieves the EiriniV1Client
+func (c *Clientset) EiriniV1() eiriniv1.EiriniV1Interface {
+	return c.eiriniV1
 }
 
 // LrpnamespaceV1 retrieves the LrpnamespaceV1Client
@@ -65,6 +73,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
+	cs.eiriniV1, err = eiriniv1.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 	cs.lrpnamespaceV1, err = lrpnamespacev1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
@@ -81,6 +93,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
+	cs.eiriniV1 = eiriniv1.NewForConfigOrDie(c)
 	cs.lrpnamespaceV1 = lrpnamespacev1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
@@ -90,6 +103,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
+	cs.eiriniV1 = eiriniv1.New(c)
 	cs.lrpnamespaceV1 = lrpnamespacev1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)

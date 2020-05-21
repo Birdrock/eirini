@@ -25,6 +25,7 @@ import (
 
 	versioned "code.cloudfoundry.org/eirini/pkg/generated/clientset/versioned"
 	internalinterfaces "code.cloudfoundry.org/eirini/pkg/generated/informers/externalversions/internalinterfaces"
+	lrp "code.cloudfoundry.org/eirini/pkg/generated/informers/externalversions/lrp"
 	lrpnamespace "code.cloudfoundry.org/eirini/pkg/generated/informers/externalversions/lrpnamespace"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -172,7 +173,12 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
+	Eirini() lrp.Interface
 	Lrpnamespace() lrpnamespace.Interface
+}
+
+func (f *sharedInformerFactory) Eirini() lrp.Interface {
+	return lrp.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Lrpnamespace() lrpnamespace.Interface {

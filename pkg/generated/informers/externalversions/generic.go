@@ -21,7 +21,8 @@ package externalversions
 import (
 	"fmt"
 
-	v1 "code.cloudfoundry.org/eirini/pkg/apis/lrpnamespace/v1"
+	v1 "code.cloudfoundry.org/eirini/pkg/apis/lrp/v1"
+	lrpnamespacev1 "code.cloudfoundry.org/eirini/pkg/apis/lrpnamespace/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -52,8 +53,12 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=lrpnamespace, Version=v1
-	case v1.SchemeGroupVersion.WithResource("lrpnamespaces"):
+	// Group=eirini.cloudfoundry.org, Version=v1
+	case v1.SchemeGroupVersion.WithResource("lrps"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Eirini().V1().LRPs().Informer()}, nil
+
+		// Group=lrpnamespace.eirini.cloudfoundry.org, Version=v1
+	case lrpnamespacev1.SchemeGroupVersion.WithResource("lrpnamespaces"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Lrpnamespace().V1().LrpNamespaces().Informer()}, nil
 
 	}

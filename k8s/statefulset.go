@@ -20,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
+	appsv1typed "k8s.io/client-go/kubernetes/typed/apps/v1"
 	"k8s.io/client-go/util/retry"
 )
 
@@ -91,6 +92,7 @@ type StatefulSetDesirer struct {
 	Secrets                   SecretsClient
 	StatefulSets              StatefulSetClient
 	PodDisruptionBudets       PodDisruptionBudgetClient
+	ClientAppsV1              appsv1typed.AppsV1Interface
 	Events                    EventLister
 	StatefulSetToLRPMapper    LRPMapper
 	RegistrySecretName        string
@@ -107,11 +109,12 @@ type ProbeCreator func(lrp *opi.LRP) *corev1.Probe
 
 func NewStatefulSetDesirer(client kubernetes.Interface, namespace, registrySecretName, rootfsVersion, appServiceAccount string, logger lager.Logger) *StatefulSetDesirer {
 	return &StatefulSetDesirer{
-		Pods:                      client.CoreV1().Pods(namespace),
-		Secrets:                   client.CoreV1().Secrets(namespace),
-		StatefulSets:              client.AppsV1().StatefulSets(namespace),
-		PodDisruptionBudets:       client.PolicyV1beta1().PodDisruptionBudgets(namespace),
-		Events:                    client.CoreV1().Events(namespace),
+		Pods:                      client.CoreV1().Pods(""),
+		Secrets:                   client.CoreV1().Secrets(""),
+		StatefulSets:              client.AppsV1().StatefulSets(""),
+		ClientAppsV1:              client.AppsV1(),
+		PodDisruptionBudets:       client.PolicyV1beta1().PodDisruptionBudgets(""),
+		Events:                    client.CoreV1().Events(""),
 		RegistrySecretName:        registrySecretName,
 		StatefulSetToLRPMapper:    StatefulSetToLRP,
 		RootfsVersion:             rootfsVersion,
@@ -134,7 +137,7 @@ func (m *StatefulSetDesirer) Desire(lrp *opi.LRP) error {
 		}
 	}
 
-	if _, err := m.StatefulSets.Create(m.toStatefulSet(lrp)); err != nil {
+	if _, err := m.ClientAppsV1.StatefulSets(lrp.Namespace).Create(m.toStatefulSet(lrp)); err != nil {
 		if statusErr, ok := err.(*k8serrors.StatusError); ok && statusErr.Status().Reason == metav1.StatusReasonAlreadyExists {
 			return nil
 		}
@@ -466,7 +469,8 @@ func (m *StatefulSetDesirer) toStatefulSet(lrp *opi.LRP) *appsv1.StatefulSet {
 
 	statefulSet := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: m.statefulSetName(lrp),
+			Name:      m.statefulSetName(lrp),
+			Namespace: lrp.Namespace,
 		},
 		Spec: appsv1.StatefulSetSpec{
 			PodManagementPolicy: "Parallel",

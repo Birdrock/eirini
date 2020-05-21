@@ -51,6 +51,7 @@ type DesireLRPRequest struct {
 	DropletGUID             string                     `json:"droplet_guid"`
 	StartCommand            string                     `json:"start_command"`
 	UserDefinedAnnotations  map[string]string          `json:"user_defined_annotations"`
+	Namespace               string                     `json:"namespace"`
 	LRP                     string
 }
 

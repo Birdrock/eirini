@@ -33,9 +33,9 @@ type FakeLrpNamespaces struct {
 	Fake *FakeLrpnamespaceV1
 }
 
-var lrpnamespacesResource = schema.GroupVersionResource{Group: "lrpnamespace", Version: "v1", Resource: "lrpnamespaces"}
+var lrpnamespacesResource = schema.GroupVersionResource{Group: "lrpnamespace.eirini.cloudfoundry.org", Version: "v1", Resource: "lrpnamespaces"}
 
-var lrpnamespacesKind = schema.GroupVersionKind{Group: "lrpnamespace", Version: "v1", Kind: "LrpNamespace"}
+var lrpnamespacesKind = schema.GroupVersionKind{Group: "lrpnamespace.eirini.cloudfoundry.org", Version: "v1", Kind: "LrpNamespace"}
 
 // Get takes name of the lrpNamespace, and returns the corresponding lrpNamespace object, and an error if there is any.
 func (c *FakeLrpNamespaces) Get(name string, options v1.GetOptions) (result *lrpnamespacev1.LrpNamespace, err error) {

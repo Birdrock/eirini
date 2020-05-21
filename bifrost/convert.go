@@ -116,6 +116,7 @@ func (c *OPIConverter) ConvertLRP(request cf.DesireLRPRequest) (opi.LRP, error) 
 
 	return opi.LRP{
 		AppName:                request.AppName,
+		Namespace:              request.Namespace,
 		AppGUID:                request.AppGUID,
 		AppURIs:                routesJSON,
 		LastUpdated:            request.LastUpdated,

@@ -19,27 +19,27 @@ limitations under the License.
 package v1
 
 import (
-	v1 "code.cloudfoundry.org/eirini/pkg/apis/lrpnamespace/v1"
+	v1 "code.cloudfoundry.org/eirini/pkg/apis/lrp/v1"
 	"code.cloudfoundry.org/eirini/pkg/generated/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 
-type LrpnamespaceV1Interface interface {
+type EiriniV1Interface interface {
 	RESTClient() rest.Interface
-	LrpNamespacesGetter
+	LRPsGetter
 }
 
-// LrpnamespaceV1Client is used to interact with features provided by the lrpnamespace.eirini.cloudfoundry.org group.
-type LrpnamespaceV1Client struct {
+// EiriniV1Client is used to interact with features provided by the eirini.cloudfoundry.org group.
+type EiriniV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *LrpnamespaceV1Client) LrpNamespaces() LrpNamespaceInterface {
-	return newLrpNamespaces(c)
+func (c *EiriniV1Client) LRPs(namespace string) LRPInterface {
+	return newLRPs(c, namespace)
 }
 
-// NewForConfig creates a new LrpnamespaceV1Client for the given config.
-func NewForConfig(c *rest.Config) (*LrpnamespaceV1Client, error) {
+// NewForConfig creates a new EiriniV1Client for the given config.
+func NewForConfig(c *rest.Config) (*EiriniV1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -48,12 +48,12 @@ func NewForConfig(c *rest.Config) (*LrpnamespaceV1Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &LrpnamespaceV1Client{client}, nil
+	return &EiriniV1Client{client}, nil
 }
 
-// NewForConfigOrDie creates a new LrpnamespaceV1Client for the given config and
+// NewForConfigOrDie creates a new EiriniV1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *rest.Config) *LrpnamespaceV1Client {
+func NewForConfigOrDie(c *rest.Config) *EiriniV1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -61,9 +61,9 @@ func NewForConfigOrDie(c *rest.Config) *LrpnamespaceV1Client {
 	return client
 }
 
-// New creates a new LrpnamespaceV1Client for the given RESTClient.
-func New(c rest.Interface) *LrpnamespaceV1Client {
-	return &LrpnamespaceV1Client{c}
+// New creates a new EiriniV1Client for the given RESTClient.
+func New(c rest.Interface) *EiriniV1Client {
+	return &EiriniV1Client{c}
 }
 
 func setConfigDefaults(config *rest.Config) error {
@@ -81,7 +81,7 @@ func setConfigDefaults(config *rest.Config) error {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *LrpnamespaceV1Client) RESTClient() rest.Interface {
+func (c *EiriniV1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

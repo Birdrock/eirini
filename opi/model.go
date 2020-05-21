@@ -28,6 +28,7 @@ type LRP struct {
 	LRPIdentifier
 	ProcessType            string
 	AppName                string
+	Namespace              string
 	AppGUID                string
 	OrgName                string
 	OrgGUID                string

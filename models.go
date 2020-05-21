@@ -150,3 +150,7 @@ type NamespaceControllerConfig struct {
 
 	KubeConfig `yaml:",inline"`
 }
+
+type LRPControllerConfig struct {
+	Properties Properties `yaml:"opi"`
+}

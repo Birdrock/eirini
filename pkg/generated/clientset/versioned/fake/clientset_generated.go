@@ -20,6 +20,8 @@ package fake
 
 import (
 	clientset "code.cloudfoundry.org/eirini/pkg/generated/clientset/versioned"
+	eiriniv1 "code.cloudfoundry.org/eirini/pkg/generated/clientset/versioned/typed/lrp/v1"
+	fakeeiriniv1 "code.cloudfoundry.org/eirini/pkg/generated/clientset/versioned/typed/lrp/v1/fake"
 	lrpnamespacev1 "code.cloudfoundry.org/eirini/pkg/generated/clientset/versioned/typed/lrpnamespace/v1"
 	fakelrpnamespacev1 "code.cloudfoundry.org/eirini/pkg/generated/clientset/versioned/typed/lrpnamespace/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -75,6 +77,11 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 }
 
 var _ clientset.Interface = &Clientset{}
+
+// EiriniV1 retrieves the EiriniV1Client
+func (c *Clientset) EiriniV1() eiriniv1.EiriniV1Interface {
+	return &fakeeiriniv1.FakeEiriniV1{Fake: &c.Fake}
+}
 
 // LrpnamespaceV1 retrieves the LrpnamespaceV1Client
 func (c *Clientset) LrpnamespaceV1() lrpnamespacev1.LrpnamespaceV1Interface {
