@@ -38,7 +38,6 @@ var _ = Describe("Routes", func() {
 		desirer = k8s.NewStatefulSetDesirer(
 			fixture.Clientset,
 			fixture.Namespace,
-			"registry-secret",
 			"rootfsversion",
 			"default",
 			logger,

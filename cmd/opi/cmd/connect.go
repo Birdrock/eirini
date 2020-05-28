@@ -120,7 +120,6 @@ func initTaskDesirer(cfg *eirini.Config, clientset kubernetes.Interface) *k8s.Ta
 		Namespace:          cfg.Properties.Namespace,
 		TLSConfig:          tlsConfigs,
 		ServiceAccountName: cfg.Properties.ApplicationServiceAccount,
-		RegistrySecretName: cfg.Properties.RegistrySecretName,
 		SecretsClient:      clientset.CoreV1().Secrets(cfg.Properties.Namespace),
 		JobClient:          clientset.BatchV1().Jobs(cfg.Properties.Namespace),
 		Logger:             logger,
@@ -170,7 +169,6 @@ func initLRPBifrost(clientset kubernetes.Interface, cfg *eirini.Config) *bifrost
 	desirer := k8s.NewStatefulSetDesirer(
 		clientset,
 		kubeNamespace,
-		cfg.Properties.RegistrySecretName,
 		cfg.Properties.RootfsVersion,
 		cfg.Properties.ApplicationServiceAccount,
 		desireLogger,

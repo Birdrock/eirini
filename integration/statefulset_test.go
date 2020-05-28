@@ -42,7 +42,6 @@ var _ = Describe("StatefulSet Manager", func() {
 		desirer = NewStatefulSetDesirer(
 			fixture.Clientset,
 			fixture.Namespace,
-			"registry-secret",
 			"rootfsversion",
 			"default",
 			logger,

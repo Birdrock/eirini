@@ -66,7 +66,7 @@ var _ = Describe("Task Desire and Complete", func() {
 
 			By("setting the registry secret name", func() {
 				podSpec := jobs.Items[0].Spec.Template.Spec
-				Expect(podSpec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "registry-secret"}))
+				Expect(podSpec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "app-registry-credentials"}))
 			})
 
 			By("specifying the right containers", func() {

@@ -94,7 +94,6 @@ type StatefulSetDesirer struct {
 	PodDisruptionBudets       PodDisruptionBudgetClient
 	Events                    EventLister
 	StatefulSetToLRPMapper    LRPMapper
-	RegistrySecretName        string
 	RootfsVersion             string
 	LivenessProbeCreator      ProbeCreator
 	ReadinessProbeCreator     ProbeCreator
@@ -106,14 +105,13 @@ type StatefulSetDesirer struct {
 //counterfeiter:generate . ProbeCreator
 type ProbeCreator func(lrp *opi.LRP) *corev1.Probe
 
-func NewStatefulSetDesirer(client kubernetes.Interface, namespace, registrySecretName, rootfsVersion, appServiceAccount string, logger lager.Logger) *StatefulSetDesirer {
+func NewStatefulSetDesirer(client kubernetes.Interface, namespace, rootfsVersion, appServiceAccount string, logger lager.Logger) *StatefulSetDesirer {
 	return &StatefulSetDesirer{
 		Pods:                      client.CoreV1().Pods(namespace),
 		Secrets:                   client.CoreV1().Secrets(namespace),
 		StatefulSets:              client.AppsV1().StatefulSets(namespace),
 		PodDisruptionBudets:       client.PolicyV1beta1().PodDisruptionBudgets(namespace),
 		Events:                    client.CoreV1().Events(namespace),
-		RegistrySecretName:        registrySecretName,
 		StatefulSetToLRPMapper:    StatefulSetToLRP,
 		RootfsVersion:             rootfsVersion,
 		LivenessProbeCreator:      CreateLivenessProbe,
@@ -410,7 +408,7 @@ func (m *StatefulSetDesirer) generateRegistryCredsSecret(lrp *opi.LRP) (*corev1.
 
 func (m *StatefulSetDesirer) calculateImagePullSecrets(lrp *opi.LRP) []corev1.LocalObjectReference {
 	imagePullSecrets := []corev1.LocalObjectReference{
-		{Name: m.RegistrySecretName},
+		{Name: ImagePullSecretName},
 	}
 
 	if lrp.PrivateRegistry != nil {

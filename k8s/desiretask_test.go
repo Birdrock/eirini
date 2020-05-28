@@ -143,7 +143,6 @@ var _ = Describe("Desiretask", func() {
 			TLSConfig:          tlsStagingConfigs,
 			JobClient:          fakeJobClient,
 			ServiceAccountName: "staging-serivce-account",
-			RegistrySecretName: "registry-secret",
 			Logger:             lagertest.NewTestLogger("desiretask"),
 			SecretsClient:      fakeSecretsClient,
 		}
@@ -170,7 +169,7 @@ var _ = Describe("Desiretask", func() {
 
 			assertGeneralSpec(job)
 
-			Expect(job.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(v1.LocalObjectReference{Name: "registry-secret"}))
+			Expect(job.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(v1.LocalObjectReference{Name: "app-registry-credentials"}))
 			containers := job.Spec.Template.Spec.Containers
 			Expect(containers).To(HaveLen(1))
 			assertContainer(containers[0], "opi-task")
@@ -277,7 +276,7 @@ var _ = Describe("Desiretask", func() {
 				job = fakeJobClient.CreateArgsForCall(0)
 
 				Expect(job.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(
-					v1.LocalObjectReference{Name: "registry-secret"},
+					v1.LocalObjectReference{Name: "app-registry-credentials"},
 					v1.LocalObjectReference{Name: "the-generated-secret-name"},
 				))
 			})

@@ -29,9 +29,8 @@ import (
 )
 
 const (
-	namespace          = "testing"
-	registrySecretName = "secret-name"
-	rootfsVersion      = "version2"
+	namespace     = "testing"
+	rootfsVersion = "version2"
 )
 
 var _ = Describe("Statefulset Desirer", func() {
@@ -68,7 +67,6 @@ var _ = Describe("Statefulset Desirer", func() {
 			Secrets:                   secretsClient,
 			StatefulSets:              statefulSetClient,
 			PodDisruptionBudets:       pdbClient,
-			RegistrySecretName:        registrySecretName,
 			RootfsVersion:             rootfsVersion,
 			LivenessProbeCreator:      livenessProbeCreator.Spy,
 			ReadinessProbeCreator:     readinessProbeCreator.Spy,
@@ -170,7 +168,7 @@ var _ = Describe("Statefulset Desirer", func() {
 			statefulSet := statefulSetClient.CreateArgsForCall(0)
 			Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(HaveLen(1))
 			secret := statefulSet.Spec.Template.Spec.ImagePullSecrets[0]
-			Expect(secret.Name).To(Equal("secret-name"))
+			Expect(secret.Name).To(Equal("app-registry-credentials"))
 		})
 
 		It("should deny privilegeEscalation", func() {

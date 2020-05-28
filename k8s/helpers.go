@@ -8,6 +8,8 @@ import (
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const ImagePullSecretName = "app-registry-credentials"
+
 //counterfeiter:generate . EventLister
 type EventLister interface {
 	List(opts meta.ListOptions) (*v1.EventList, error)

@@ -27,7 +27,6 @@ var _ = Describe("RootfsPatcher", func() {
 		desirer = k8s.NewStatefulSetDesirer(
 			fixture.Clientset,
 			fixture.Namespace,
-			"registry-credentials",
 			"old_rootfsversion",
 			"default",
 			logger,

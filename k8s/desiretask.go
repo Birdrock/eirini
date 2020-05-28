@@ -43,7 +43,6 @@ type TaskDesirer struct {
 	CertsSecretName    string
 	TLSConfig          []StagingConfigTLS
 	ServiceAccountName string
-	RegistrySecretName string
 	JobClient          JobClient
 	Logger             lager.Logger
 	SecretsClient      SecretsClient
@@ -111,7 +110,7 @@ func (d *TaskDesirer) toTaskJob(task *opi.Task) (*batch.Job, error) {
 
 	job.Spec.Template.Spec.ImagePullSecrets = []v1.LocalObjectReference{
 		{
-			Name: d.RegistrySecretName,
+			Name: ImagePullSecretName,
 		},
 	}
 
