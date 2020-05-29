@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"code.cloudfoundry.org/eirini"
@@ -12,6 +13,11 @@ import (
 	"code.cloudfoundry.org/eirini/opi"
 	"code.cloudfoundry.org/lager"
 	"github.com/julienschmidt/httprouter"
+)
+
+const (
+	defaultAppNamespace = "eirini"
+	queryParamNamespace = "namespace"
 )
 
 func NewAppHandler(lrpBifrost LRPBifrost, logger lager.Logger) *App {
@@ -24,6 +30,7 @@ type App struct {
 }
 
 func (a *App) Desire(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	namespace := queryNamespaceParam(r.URL)
 	loggerSession := a.logger.Session("desire-app", lager.Data{"guid": ps.ByName("process_guid")})
 	var request cf.DesireLRPRequest
 	buf := new(bytes.Buffer)
@@ -42,7 +49,7 @@ func (a *App) Desire(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 
 	request.LRP = buf.String()
 
-	if err := a.lrpBifrost.Transfer(r.Context(), request); err != nil {
+	if err := a.lrpBifrost.Transfer(r.Context(), request, namespace); err != nil {
 		loggerSession.Error("bifrost-failed", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -52,9 +59,10 @@ func (a *App) Desire(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 }
 
 func (a *App) List(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	namespace := queryNamespaceParam(r.URL)
 	loggerSession := a.logger.Session("list-apps")
 	loggerSession.Debug("requested")
-	desiredLRPSchedulingInfos, err := a.lrpBifrost.List(r.Context())
+	desiredLRPSchedulingInfos, err := a.lrpBifrost.List(r.Context(), namespace)
 	if err != nil {
 		loggerSession.Error("bifrost-failed", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -82,11 +90,14 @@ func (a *App) List(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 func (a *App) GetApp(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	loggerSession := a.logger.Session("get-app", lager.Data{"guid": ps.ByName("process_guid"), "version": ps.ByName("version_guid")})
 	loggerSession.Debug("requested")
+
+	namespace := queryNamespaceParam(r.URL)
+
 	identifier := opi.LRPIdentifier{
 		GUID:    ps.ByName("process_guid"),
 		Version: ps.ByName("version_guid"),
 	}
-	desiredLRP, err := a.lrpBifrost.GetApp(r.Context(), identifier)
+	desiredLRP, err := a.lrpBifrost.GetApp(r.Context(), identifier, namespace)
 	if err != nil {
 		loggerSession.Error("failed-to-get-lrp", err, lager.Data{"guid": identifier.GUID})
 		w.WriteHeader(http.StatusNotFound)
@@ -106,12 +117,15 @@ func (a *App) GetApp(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 func (a *App) GetInstances(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	loggerSession := a.logger.Session("get-app-instances", lager.Data{"guid": ps.ByName("process_guid"), "version": ps.ByName("version_guid")})
 	loggerSession.Debug("requested")
+
+	namespace := queryNamespaceParam(r.URL)
+
 	identifier := opi.LRPIdentifier{
 		GUID:    ps.ByName("process_guid"),
 		Version: ps.ByName("version_guid"),
 	}
 	response := cf.GetInstancesResponse{ProcessGUID: identifier.ProcessGUID()}
-	instances, err := a.lrpBifrost.GetInstances(r.Context(), identifier)
+	instances, err := a.lrpBifrost.GetInstances(r.Context(), identifier, namespace)
 	response.Instances = instances
 
 	if err != nil {
@@ -133,6 +147,9 @@ func (a *App) GetInstances(w http.ResponseWriter, r *http.Request, ps httprouter
 
 func (a *App) Update(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	loggerSession := a.logger.Session("update-app", lager.Data{"guid": ps.ByName("process_guid")})
+
+	namespace := queryNamespaceParam(r.URL)
+
 	var request cf.UpdateDesiredLRPRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		loggerSession.Error("json-decoding-failed", err)
@@ -143,7 +160,7 @@ func (a *App) Update(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 
 	loggerSession.Debug("requested", lager.Data{"version": request.Version})
 
-	if err := a.lrpBifrost.Update(r.Context(), request); err != nil {
+	if err := a.lrpBifrost.Update(r.Context(), request, namespace); err != nil {
 		loggerSession.Error("bifrost-failed", err)
 		writeUpdateErrorResponse(w, err, http.StatusInternalServerError, loggerSession)
 	}
@@ -152,11 +169,14 @@ func (a *App) Update(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 func (a *App) Stop(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	loggerSession := a.logger.Session("stop-app", lager.Data{"guid": ps.ByName("process_guid"), "version": ps.ByName("version")})
 	loggerSession.Debug("requested")
+
+	namespace := queryNamespaceParam(r.URL)
+
 	identifier := opi.LRPIdentifier{
 		GUID:    ps.ByName("process_guid"),
 		Version: ps.ByName("version_guid"),
 	}
-	if err := a.lrpBifrost.Stop(r.Context(), identifier); err != nil {
+	if err := a.lrpBifrost.Stop(r.Context(), identifier, namespace); err != nil {
 		loggerSession.Error("bifrost-failed", err)
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, eirini.ErrNotFound) {
@@ -169,6 +189,9 @@ func (a *App) Stop(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 func (a *App) StopInstance(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	loggerSession := a.logger.Session("stop-app-instance", lager.Data{"guid": ps.ByName("process_guid"), "version": ps.ByName("version_guid")})
 	loggerSession.Debug("requested")
+
+	namespace := queryNamespaceParam(r.URL)
+
 	identifier := opi.LRPIdentifier{
 		GUID:    ps.ByName("process_guid"),
 		Version: ps.ByName("version_guid"),
@@ -180,7 +203,7 @@ func (a *App) StopInstance(w http.ResponseWriter, r *http.Request, ps httprouter
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
-	if err := a.lrpBifrost.StopInstance(r.Context(), identifier, uint(index)); err != nil {
+	if err := a.lrpBifrost.StopInstance(r.Context(), identifier, uint(index), namespace); err != nil {
 		loggerSession.Error("bifrost-failed", err)
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, eirini.ErrNotFound) {
@@ -210,4 +233,14 @@ func writeUpdateErrorResponse(w http.ResponseWriter, err error, statusCode int, 
 	if _, err = w.Write(body); err != nil {
 		loggerSession.Error("could-not-write-response", err)
 	}
+}
+
+func queryNamespaceParam(u *url.URL) string {
+	namespace := defaultAppNamespace
+	queryParams := u.Query()
+	if queryParams.Get(queryParamNamespace) != "" {
+		namespace = queryParams.Get("namespace")
+	}
+
+	return namespace
 }

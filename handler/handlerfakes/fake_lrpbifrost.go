@@ -11,11 +11,12 @@ import (
 )
 
 type FakeLRPBifrost struct {
-	GetAppStub        func(context.Context, opi.LRPIdentifier) (cf.DesiredLRP, error)
+	GetAppStub        func(context.Context, opi.LRPIdentifier, string) (cf.DesiredLRP, error)
 	getAppMutex       sync.RWMutex
 	getAppArgsForCall []struct {
 		arg1 context.Context
 		arg2 opi.LRPIdentifier
+		arg3 string
 	}
 	getAppReturns struct {
 		result1 cf.DesiredLRP
@@ -25,11 +26,12 @@ type FakeLRPBifrost struct {
 		result1 cf.DesiredLRP
 		result2 error
 	}
-	GetInstancesStub        func(context.Context, opi.LRPIdentifier) ([]*cf.Instance, error)
+	GetInstancesStub        func(context.Context, opi.LRPIdentifier, string) ([]*cf.Instance, error)
 	getInstancesMutex       sync.RWMutex
 	getInstancesArgsForCall []struct {
 		arg1 context.Context
 		arg2 opi.LRPIdentifier
+		arg3 string
 	}
 	getInstancesReturns struct {
 		result1 []*cf.Instance
@@ -39,10 +41,11 @@ type FakeLRPBifrost struct {
 		result1 []*cf.Instance
 		result2 error
 	}
-	ListStub        func(context.Context) ([]cf.DesiredLRPSchedulingInfo, error)
+	ListStub        func(context.Context, string) ([]cf.DesiredLRPSchedulingInfo, error)
 	listMutex       sync.RWMutex
 	listArgsForCall []struct {
 		arg1 context.Context
+		arg2 string
 	}
 	listReturns struct {
 		result1 []cf.DesiredLRPSchedulingInfo
@@ -52,11 +55,12 @@ type FakeLRPBifrost struct {
 		result1 []cf.DesiredLRPSchedulingInfo
 		result2 error
 	}
-	StopStub        func(context.Context, opi.LRPIdentifier) error
+	StopStub        func(context.Context, opi.LRPIdentifier, string) error
 	stopMutex       sync.RWMutex
 	stopArgsForCall []struct {
 		arg1 context.Context
 		arg2 opi.LRPIdentifier
+		arg3 string
 	}
 	stopReturns struct {
 		result1 error
@@ -64,12 +68,13 @@ type FakeLRPBifrost struct {
 	stopReturnsOnCall map[int]struct {
 		result1 error
 	}
-	StopInstanceStub        func(context.Context, opi.LRPIdentifier, uint) error
+	StopInstanceStub        func(context.Context, opi.LRPIdentifier, uint, string) error
 	stopInstanceMutex       sync.RWMutex
 	stopInstanceArgsForCall []struct {
 		arg1 context.Context
 		arg2 opi.LRPIdentifier
 		arg3 uint
+		arg4 string
 	}
 	stopInstanceReturns struct {
 		result1 error
@@ -77,11 +82,12 @@ type FakeLRPBifrost struct {
 	stopInstanceReturnsOnCall map[int]struct {
 		result1 error
 	}
-	TransferStub        func(context.Context, cf.DesireLRPRequest) error
+	TransferStub        func(context.Context, cf.DesireLRPRequest, string) error
 	transferMutex       sync.RWMutex
 	transferArgsForCall []struct {
 		arg1 context.Context
 		arg2 cf.DesireLRPRequest
+		arg3 string
 	}
 	transferReturns struct {
 		result1 error
@@ -89,11 +95,12 @@ type FakeLRPBifrost struct {
 	transferReturnsOnCall map[int]struct {
 		result1 error
 	}
-	UpdateStub        func(context.Context, cf.UpdateDesiredLRPRequest) error
+	UpdateStub        func(context.Context, cf.UpdateDesiredLRPRequest, string) error
 	updateMutex       sync.RWMutex
 	updateArgsForCall []struct {
 		arg1 context.Context
 		arg2 cf.UpdateDesiredLRPRequest
+		arg3 string
 	}
 	updateReturns struct {
 		result1 error
@@ -105,17 +112,18 @@ type FakeLRPBifrost struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeLRPBifrost) GetApp(arg1 context.Context, arg2 opi.LRPIdentifier) (cf.DesiredLRP, error) {
+func (fake *FakeLRPBifrost) GetApp(arg1 context.Context, arg2 opi.LRPIdentifier, arg3 string) (cf.DesiredLRP, error) {
 	fake.getAppMutex.Lock()
 	ret, specificReturn := fake.getAppReturnsOnCall[len(fake.getAppArgsForCall)]
 	fake.getAppArgsForCall = append(fake.getAppArgsForCall, struct {
 		arg1 context.Context
 		arg2 opi.LRPIdentifier
-	}{arg1, arg2})
-	fake.recordInvocation("GetApp", []interface{}{arg1, arg2})
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("GetApp", []interface{}{arg1, arg2, arg3})
 	fake.getAppMutex.Unlock()
 	if fake.GetAppStub != nil {
-		return fake.GetAppStub(arg1, arg2)
+		return fake.GetAppStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -130,17 +138,17 @@ func (fake *FakeLRPBifrost) GetAppCallCount() int {
 	return len(fake.getAppArgsForCall)
 }
 
-func (fake *FakeLRPBifrost) GetAppCalls(stub func(context.Context, opi.LRPIdentifier) (cf.DesiredLRP, error)) {
+func (fake *FakeLRPBifrost) GetAppCalls(stub func(context.Context, opi.LRPIdentifier, string) (cf.DesiredLRP, error)) {
 	fake.getAppMutex.Lock()
 	defer fake.getAppMutex.Unlock()
 	fake.GetAppStub = stub
 }
 
-func (fake *FakeLRPBifrost) GetAppArgsForCall(i int) (context.Context, opi.LRPIdentifier) {
+func (fake *FakeLRPBifrost) GetAppArgsForCall(i int) (context.Context, opi.LRPIdentifier, string) {
 	fake.getAppMutex.RLock()
 	defer fake.getAppMutex.RUnlock()
 	argsForCall := fake.getAppArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeLRPBifrost) GetAppReturns(result1 cf.DesiredLRP, result2 error) {
@@ -169,17 +177,18 @@ func (fake *FakeLRPBifrost) GetAppReturnsOnCall(i int, result1 cf.DesiredLRP, re
 	}{result1, result2}
 }
 
-func (fake *FakeLRPBifrost) GetInstances(arg1 context.Context, arg2 opi.LRPIdentifier) ([]*cf.Instance, error) {
+func (fake *FakeLRPBifrost) GetInstances(arg1 context.Context, arg2 opi.LRPIdentifier, arg3 string) ([]*cf.Instance, error) {
 	fake.getInstancesMutex.Lock()
 	ret, specificReturn := fake.getInstancesReturnsOnCall[len(fake.getInstancesArgsForCall)]
 	fake.getInstancesArgsForCall = append(fake.getInstancesArgsForCall, struct {
 		arg1 context.Context
 		arg2 opi.LRPIdentifier
-	}{arg1, arg2})
-	fake.recordInvocation("GetInstances", []interface{}{arg1, arg2})
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("GetInstances", []interface{}{arg1, arg2, arg3})
 	fake.getInstancesMutex.Unlock()
 	if fake.GetInstancesStub != nil {
-		return fake.GetInstancesStub(arg1, arg2)
+		return fake.GetInstancesStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -194,17 +203,17 @@ func (fake *FakeLRPBifrost) GetInstancesCallCount() int {
 	return len(fake.getInstancesArgsForCall)
 }
 
-func (fake *FakeLRPBifrost) GetInstancesCalls(stub func(context.Context, opi.LRPIdentifier) ([]*cf.Instance, error)) {
+func (fake *FakeLRPBifrost) GetInstancesCalls(stub func(context.Context, opi.LRPIdentifier, string) ([]*cf.Instance, error)) {
 	fake.getInstancesMutex.Lock()
 	defer fake.getInstancesMutex.Unlock()
 	fake.GetInstancesStub = stub
 }
 
-func (fake *FakeLRPBifrost) GetInstancesArgsForCall(i int) (context.Context, opi.LRPIdentifier) {
+func (fake *FakeLRPBifrost) GetInstancesArgsForCall(i int) (context.Context, opi.LRPIdentifier, string) {
 	fake.getInstancesMutex.RLock()
 	defer fake.getInstancesMutex.RUnlock()
 	argsForCall := fake.getInstancesArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeLRPBifrost) GetInstancesReturns(result1 []*cf.Instance, result2 error) {
@@ -233,16 +242,17 @@ func (fake *FakeLRPBifrost) GetInstancesReturnsOnCall(i int, result1 []*cf.Insta
 	}{result1, result2}
 }
 
-func (fake *FakeLRPBifrost) List(arg1 context.Context) ([]cf.DesiredLRPSchedulingInfo, error) {
+func (fake *FakeLRPBifrost) List(arg1 context.Context, arg2 string) ([]cf.DesiredLRPSchedulingInfo, error) {
 	fake.listMutex.Lock()
 	ret, specificReturn := fake.listReturnsOnCall[len(fake.listArgsForCall)]
 	fake.listArgsForCall = append(fake.listArgsForCall, struct {
 		arg1 context.Context
-	}{arg1})
-	fake.recordInvocation("List", []interface{}{arg1})
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("List", []interface{}{arg1, arg2})
 	fake.listMutex.Unlock()
 	if fake.ListStub != nil {
-		return fake.ListStub(arg1)
+		return fake.ListStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -257,17 +267,17 @@ func (fake *FakeLRPBifrost) ListCallCount() int {
 	return len(fake.listArgsForCall)
 }
 
-func (fake *FakeLRPBifrost) ListCalls(stub func(context.Context) ([]cf.DesiredLRPSchedulingInfo, error)) {
+func (fake *FakeLRPBifrost) ListCalls(stub func(context.Context, string) ([]cf.DesiredLRPSchedulingInfo, error)) {
 	fake.listMutex.Lock()
 	defer fake.listMutex.Unlock()
 	fake.ListStub = stub
 }
 
-func (fake *FakeLRPBifrost) ListArgsForCall(i int) context.Context {
+func (fake *FakeLRPBifrost) ListArgsForCall(i int) (context.Context, string) {
 	fake.listMutex.RLock()
 	defer fake.listMutex.RUnlock()
 	argsForCall := fake.listArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeLRPBifrost) ListReturns(result1 []cf.DesiredLRPSchedulingInfo, result2 error) {
@@ -296,17 +306,18 @@ func (fake *FakeLRPBifrost) ListReturnsOnCall(i int, result1 []cf.DesiredLRPSche
 	}{result1, result2}
 }
 
-func (fake *FakeLRPBifrost) Stop(arg1 context.Context, arg2 opi.LRPIdentifier) error {
+func (fake *FakeLRPBifrost) Stop(arg1 context.Context, arg2 opi.LRPIdentifier, arg3 string) error {
 	fake.stopMutex.Lock()
 	ret, specificReturn := fake.stopReturnsOnCall[len(fake.stopArgsForCall)]
 	fake.stopArgsForCall = append(fake.stopArgsForCall, struct {
 		arg1 context.Context
 		arg2 opi.LRPIdentifier
-	}{arg1, arg2})
-	fake.recordInvocation("Stop", []interface{}{arg1, arg2})
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Stop", []interface{}{arg1, arg2, arg3})
 	fake.stopMutex.Unlock()
 	if fake.StopStub != nil {
-		return fake.StopStub(arg1, arg2)
+		return fake.StopStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -321,17 +332,17 @@ func (fake *FakeLRPBifrost) StopCallCount() int {
 	return len(fake.stopArgsForCall)
 }
 
-func (fake *FakeLRPBifrost) StopCalls(stub func(context.Context, opi.LRPIdentifier) error) {
+func (fake *FakeLRPBifrost) StopCalls(stub func(context.Context, opi.LRPIdentifier, string) error) {
 	fake.stopMutex.Lock()
 	defer fake.stopMutex.Unlock()
 	fake.StopStub = stub
 }
 
-func (fake *FakeLRPBifrost) StopArgsForCall(i int) (context.Context, opi.LRPIdentifier) {
+func (fake *FakeLRPBifrost) StopArgsForCall(i int) (context.Context, opi.LRPIdentifier, string) {
 	fake.stopMutex.RLock()
 	defer fake.stopMutex.RUnlock()
 	argsForCall := fake.stopArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeLRPBifrost) StopReturns(result1 error) {
@@ -357,18 +368,19 @@ func (fake *FakeLRPBifrost) StopReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeLRPBifrost) StopInstance(arg1 context.Context, arg2 opi.LRPIdentifier, arg3 uint) error {
+func (fake *FakeLRPBifrost) StopInstance(arg1 context.Context, arg2 opi.LRPIdentifier, arg3 uint, arg4 string) error {
 	fake.stopInstanceMutex.Lock()
 	ret, specificReturn := fake.stopInstanceReturnsOnCall[len(fake.stopInstanceArgsForCall)]
 	fake.stopInstanceArgsForCall = append(fake.stopInstanceArgsForCall, struct {
 		arg1 context.Context
 		arg2 opi.LRPIdentifier
 		arg3 uint
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("StopInstance", []interface{}{arg1, arg2, arg3})
+		arg4 string
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("StopInstance", []interface{}{arg1, arg2, arg3, arg4})
 	fake.stopInstanceMutex.Unlock()
 	if fake.StopInstanceStub != nil {
-		return fake.StopInstanceStub(arg1, arg2, arg3)
+		return fake.StopInstanceStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
@@ -383,17 +395,17 @@ func (fake *FakeLRPBifrost) StopInstanceCallCount() int {
 	return len(fake.stopInstanceArgsForCall)
 }
 
-func (fake *FakeLRPBifrost) StopInstanceCalls(stub func(context.Context, opi.LRPIdentifier, uint) error) {
+func (fake *FakeLRPBifrost) StopInstanceCalls(stub func(context.Context, opi.LRPIdentifier, uint, string) error) {
 	fake.stopInstanceMutex.Lock()
 	defer fake.stopInstanceMutex.Unlock()
 	fake.StopInstanceStub = stub
 }
 
-func (fake *FakeLRPBifrost) StopInstanceArgsForCall(i int) (context.Context, opi.LRPIdentifier, uint) {
+func (fake *FakeLRPBifrost) StopInstanceArgsForCall(i int) (context.Context, opi.LRPIdentifier, uint, string) {
 	fake.stopInstanceMutex.RLock()
 	defer fake.stopInstanceMutex.RUnlock()
 	argsForCall := fake.stopInstanceArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeLRPBifrost) StopInstanceReturns(result1 error) {
@@ -419,17 +431,18 @@ func (fake *FakeLRPBifrost) StopInstanceReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeLRPBifrost) Transfer(arg1 context.Context, arg2 cf.DesireLRPRequest) error {
+func (fake *FakeLRPBifrost) Transfer(arg1 context.Context, arg2 cf.DesireLRPRequest, arg3 string) error {
 	fake.transferMutex.Lock()
 	ret, specificReturn := fake.transferReturnsOnCall[len(fake.transferArgsForCall)]
 	fake.transferArgsForCall = append(fake.transferArgsForCall, struct {
 		arg1 context.Context
 		arg2 cf.DesireLRPRequest
-	}{arg1, arg2})
-	fake.recordInvocation("Transfer", []interface{}{arg1, arg2})
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Transfer", []interface{}{arg1, arg2, arg3})
 	fake.transferMutex.Unlock()
 	if fake.TransferStub != nil {
-		return fake.TransferStub(arg1, arg2)
+		return fake.TransferStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -444,17 +457,17 @@ func (fake *FakeLRPBifrost) TransferCallCount() int {
 	return len(fake.transferArgsForCall)
 }
 
-func (fake *FakeLRPBifrost) TransferCalls(stub func(context.Context, cf.DesireLRPRequest) error) {
+func (fake *FakeLRPBifrost) TransferCalls(stub func(context.Context, cf.DesireLRPRequest, string) error) {
 	fake.transferMutex.Lock()
 	defer fake.transferMutex.Unlock()
 	fake.TransferStub = stub
 }
 
-func (fake *FakeLRPBifrost) TransferArgsForCall(i int) (context.Context, cf.DesireLRPRequest) {
+func (fake *FakeLRPBifrost) TransferArgsForCall(i int) (context.Context, cf.DesireLRPRequest, string) {
 	fake.transferMutex.RLock()
 	defer fake.transferMutex.RUnlock()
 	argsForCall := fake.transferArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeLRPBifrost) TransferReturns(result1 error) {
@@ -480,17 +493,18 @@ func (fake *FakeLRPBifrost) TransferReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeLRPBifrost) Update(arg1 context.Context, arg2 cf.UpdateDesiredLRPRequest) error {
+func (fake *FakeLRPBifrost) Update(arg1 context.Context, arg2 cf.UpdateDesiredLRPRequest, arg3 string) error {
 	fake.updateMutex.Lock()
 	ret, specificReturn := fake.updateReturnsOnCall[len(fake.updateArgsForCall)]
 	fake.updateArgsForCall = append(fake.updateArgsForCall, struct {
 		arg1 context.Context
 		arg2 cf.UpdateDesiredLRPRequest
-	}{arg1, arg2})
-	fake.recordInvocation("Update", []interface{}{arg1, arg2})
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Update", []interface{}{arg1, arg2, arg3})
 	fake.updateMutex.Unlock()
 	if fake.UpdateStub != nil {
-		return fake.UpdateStub(arg1, arg2)
+		return fake.UpdateStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -505,17 +519,17 @@ func (fake *FakeLRPBifrost) UpdateCallCount() int {
 	return len(fake.updateArgsForCall)
 }
 
-func (fake *FakeLRPBifrost) UpdateCalls(stub func(context.Context, cf.UpdateDesiredLRPRequest) error) {
+func (fake *FakeLRPBifrost) UpdateCalls(stub func(context.Context, cf.UpdateDesiredLRPRequest, string) error) {
 	fake.updateMutex.Lock()
 	defer fake.updateMutex.Unlock()
 	fake.UpdateStub = stub
 }
 
-func (fake *FakeLRPBifrost) UpdateArgsForCall(i int) (context.Context, cf.UpdateDesiredLRPRequest) {
+func (fake *FakeLRPBifrost) UpdateArgsForCall(i int) (context.Context, cf.UpdateDesiredLRPRequest, string) {
 	fake.updateMutex.RLock()
 	defer fake.updateMutex.RUnlock()
 	argsForCall := fake.updateArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeLRPBifrost) UpdateReturns(result1 error) {

@@ -50,6 +50,11 @@ type LRP struct {
 	AppURIs                string
 	LastUpdated            string
 	UserDefinedAnnotations map[string]string
+	SchedulingDetails      SchedulingDetails
+}
+
+type SchedulingDetails struct {
+	Namespace string
 }
 
 type PrivateRegistry struct {

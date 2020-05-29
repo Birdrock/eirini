@@ -12,13 +12,13 @@ import (
 
 //counterfeiter:generate . LRPBifrost
 type LRPBifrost interface {
-	Transfer(ctx context.Context, request cf.DesireLRPRequest) error
-	List(ctx context.Context) ([]cf.DesiredLRPSchedulingInfo, error)
-	Update(ctx context.Context, update cf.UpdateDesiredLRPRequest) error
-	Stop(ctx context.Context, identifier opi.LRPIdentifier) error
-	StopInstance(ctx context.Context, identifier opi.LRPIdentifier, index uint) error
-	GetApp(ctx context.Context, identifier opi.LRPIdentifier) (cf.DesiredLRP, error)
-	GetInstances(ctx context.Context, identifier opi.LRPIdentifier) ([]*cf.Instance, error)
+	Transfer(ctx context.Context, request cf.DesireLRPRequest, namespace string) error
+	List(ctx context.Context, namespace string) ([]cf.DesiredLRPSchedulingInfo, error)
+	Update(ctx context.Context, update cf.UpdateDesiredLRPRequest, namespace string) error
+	Stop(ctx context.Context, identifier opi.LRPIdentifier, namespace string) error
+	StopInstance(ctx context.Context, identifier opi.LRPIdentifier, index uint, namespace string) error
+	GetApp(ctx context.Context, identifier opi.LRPIdentifier, namespace string) (cf.DesiredLRP, error)
+	GetInstances(ctx context.Context, identifier opi.LRPIdentifier, namespace string) ([]*cf.Instance, error)
 }
 
 //counterfeiter:generate . TaskBifrost

@@ -157,8 +157,20 @@ var _ = Describe("AppHandler", func() {
 			}
 
 			Expect(lrpBifrost.TransferCallCount()).To(Equal(1))
-			_, request := lrpBifrost.TransferArgsForCall(0)
+			_, request, namespace := lrpBifrost.TransferArgsForCall(0)
 			Expect(request).To(Equal(expectedRequest))
+			Expect(namespace).To(Equal("eirini"))
+		})
+
+		When("A namespace parameter is provided", func() {
+			BeforeEach(func() {
+				path = fmt.Sprintf("%s?namespace=norini", path)
+			})
+
+			It("should use the provided namespace", func() {
+				_, _, namespace := lrpBifrost.TransferArgsForCall(0)
+				Expect(namespace).To(Equal("norini"))
+			})
 		})
 
 		Context("When Bifrost fails to handle desire request", func() {
@@ -198,15 +210,17 @@ var _ = Describe("AppHandler", func() {
 			responseRecorder     *httptest.ResponseRecorder
 			expectedJSONResponse string
 			schedInfos           []cf.DesiredLRPSchedulingInfo
+			path                 string
 		)
 
 		BeforeEach(func() {
+			path = "/apps"
 			schedInfos = createSchedulingInfos()
 			lrpBifrost.ListReturns(schedInfos, nil)
 		})
 
 		JustBeforeEach(func() {
-			req, err := http.NewRequest("", "/apps", nil)
+			req, err := http.NewRequest("", path, nil)
 			Expect(err).ToNot(HaveOccurred())
 			responseRecorder = httptest.NewRecorder()
 			appHandler = NewAppHandler(lrpBifrost, lager)
@@ -219,7 +233,12 @@ var _ = Describe("AppHandler", func() {
 			expectedJSONResponse = string(expectedJSONResponseBytes)
 		})
 
-		Context("When there are existing apps", func() {
+		It("calls bifrost.List with the correct namespace", func() {
+			_, namespace := lrpBifrost.ListArgsForCall(0)
+			Expect(namespace).To(Equal("eirini"))
+		})
+
+		When("there are existing apps", func() {
 			It("should list all DesiredLRPSchedulingInfos as JSON in the response body", func() {
 				Expect(responseRecorder.Code).To(Equal(http.StatusOK))
 
@@ -228,10 +247,20 @@ var _ = Describe("AppHandler", func() {
 
 				Expect(strings.Trim(string(body), "\n")).To(Equal(expectedJSONResponse))
 			})
-
 		})
 
-		Context("When there are no existing apps", func() {
+		When("there is a namespace query parameter provided", func() {
+			BeforeEach(func() {
+				path = "/apps?namespace=norini"
+			})
+
+			It("calls bifrost with the provided namespace", func() {
+				_, namespace := lrpBifrost.ListArgsForCall(0)
+				Expect(namespace).To(Equal("norini"))
+			})
+		})
+
+		When("there are no existing apps", func() {
 			BeforeEach(func() {
 				schedInfos = []cf.DesiredLRPSchedulingInfo{}
 				lrpBifrost.ListReturns(schedInfos, nil)
@@ -245,10 +274,9 @@ var _ = Describe("AppHandler", func() {
 
 				Expect(strings.Trim(string(body), "\n")).To(Equal(expectedJSONResponse))
 			})
-
 		})
 
-		Context("When bifrost returns an error", func() {
+		When("bifrost returns an error", func() {
 			BeforeEach(func() {
 				lrpBifrost.ListReturns(nil, errors.New("something-went-wrong"))
 			})
@@ -270,7 +298,7 @@ var _ = Describe("AppHandler", func() {
 			})
 		})
 
-		Context("When there are no apps", func() {
+		When("there are no apps", func() {
 			BeforeEach(func() {
 				lrpBifrost.ListReturns([]cf.DesiredLRPSchedulingInfo{}, nil)
 			})
@@ -305,14 +333,15 @@ var _ = Describe("AppHandler", func() {
 
 		})
 
-		It("should use the bifrost to get the app", func() {
+		It("should use the bifrost to get the app from the right namespace", func() {
 			Expect(lrpBifrost.GetAppCallCount()).To(Equal(1))
-			_, identifier := lrpBifrost.GetAppArgsForCall(0)
+			_, identifier, namespace := lrpBifrost.GetAppArgsForCall(0)
 			Expect(identifier.GUID).To(Equal("guid_1234"))
 			Expect(identifier.Version).To(Equal("version_1234"))
+			Expect(namespace).To(Equal("eirini"))
 		})
 
-		Context("when the app exists", func() {
+		When("the app exists", func() {
 			BeforeEach(func() {
 				desiredLRP = cf.DesiredLRP{
 					ProcessGUID: "guid_1234-version_1234",
@@ -337,7 +366,18 @@ var _ = Describe("AppHandler", func() {
 
 		})
 
-		Context("when the app does not exist", func() {
+		When("there is a namespace query param provided", func() {
+			BeforeEach(func() {
+				path = fmt.Sprintf("%s?namespace=norini", path)
+			})
+
+			It("calls bifrost with the correct namespace", func() {
+				_, _, namespace := lrpBifrost.GetAppArgsForCall(0)
+				Expect(namespace).To(Equal("norini"))
+			})
+		})
+
+		When("the app does not exist", func() {
 			BeforeEach(func() {
 				lrpBifrost.GetAppReturns(cf.DesiredLRP{}, errors.New("boom"))
 			})
@@ -376,9 +416,10 @@ var _ = Describe("AppHandler", func() {
 
 		It("should use bifrost to get all instances", func() {
 			Expect(lrpBifrost.GetInstancesCallCount()).To(Equal(1))
-			_, identifier := lrpBifrost.GetInstancesArgsForCall(0)
+			_, identifier, namespace := lrpBifrost.GetInstancesArgsForCall(0)
 			Expect(identifier.GUID).To(Equal("guid_1234"))
 			Expect(identifier.Version).To(Equal("version_1234"))
+			Expect(namespace).To(Equal("eirini"))
 		})
 
 		It("should return the instances in the response", func() {
@@ -409,7 +450,18 @@ var _ = Describe("AppHandler", func() {
 			Expect(string(body)).To(MatchJSON(expectedResponse))
 		})
 
-		Context("when Bifrost returns an error", func() {
+		When("there is a namespace query param provided", func() {
+			BeforeEach(func() {
+				path = fmt.Sprintf("%s?namespace=norini", path)
+			})
+
+			It("calls bifrost with the correct namespace", func() {
+				_, _, namespace := lrpBifrost.GetInstancesArgsForCall(0)
+				Expect(namespace).To(Equal("norini"))
+			})
+		})
+
+		When("Bifrost returns an error", func() {
 			BeforeEach(func() {
 				lrpBifrost.GetInstancesReturns([]*cf.Instance{}, errors.New("failed to get instances"))
 			})
@@ -429,7 +481,7 @@ var _ = Describe("AppHandler", func() {
 			It("should provide a helpful log message", findLog("app-handler-test.get-app-instances.bifrost-failed", "guid_1234"))
 		})
 
-		Context("when the app is not found", func() {
+		When("the app is not found", func() {
 			BeforeEach(func() {
 				lrpBifrost.GetInstancesReturns([]*cf.Instance{}, errors.Wrap(eirini.ErrNotFound, "failed to get instances"))
 			})
@@ -478,7 +530,7 @@ var _ = Describe("AppHandler", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		Context("when the update is successful", func() {
+		When("the update is successful", func() {
 			BeforeEach(func() {
 				lrpBifrost.UpdateReturns(nil)
 			})
@@ -489,14 +541,26 @@ var _ = Describe("AppHandler", func() {
 
 			It("should translate the request", func() {
 				Expect(lrpBifrost.UpdateCallCount()).To(Equal(1))
-				_, request := lrpBifrost.UpdateArgsForCall(0)
+				_, request, namespace := lrpBifrost.UpdateArgsForCall(0)
 				Expect(request.GUID).To(Equal("app-id"))
 				Expect(request.Version).To(Equal("version-id"))
 				Expect(request.Update.Instances).To(Equal(5))
+				Expect(namespace).To(Equal("eirini"))
 			})
 		})
 
-		Context("when the json is invalid", func() {
+		When("there is a namespace query param provided", func() {
+			BeforeEach(func() {
+				path = fmt.Sprintf("%s?namespace=norini", path)
+			})
+
+			It("calls bifrost with the correct namespace", func() {
+				_, _, namespace := lrpBifrost.UpdateArgsForCall(0)
+				Expect(namespace).To(Equal("norini"))
+			})
+		})
+
+		When("the json is invalid", func() {
 			BeforeEach(func() {
 				body = "{invalid.json"
 			})
@@ -516,7 +580,7 @@ var _ = Describe("AppHandler", func() {
 			It("should provide a helpful log message", findLog("app-handler-test.update-app.json-decoding-failed", "myguid"))
 		})
 
-		Context("when update fails", func() {
+		When("update fails", func() {
 			BeforeEach(func() {
 				lrpBifrost.UpdateReturns(errors.New("Failed to update"))
 			})
@@ -561,12 +625,24 @@ var _ = Describe("AppHandler", func() {
 		})
 
 		It("should target the right app", func() {
-			_, identifier := lrpBifrost.StopArgsForCall(0)
+			_, identifier, namespace := lrpBifrost.StopArgsForCall(0)
 			Expect(identifier.GUID).To(Equal("app_1234"))
 			Expect(identifier.Version).To(Equal("version_1234"))
+			Expect(namespace).To(Equal("eirini"))
 		})
 
-		Context("when app is not found", func() {
+		When("there is a namespace query param provided", func() {
+			BeforeEach(func() {
+				path = fmt.Sprintf("%s?namespace=norini", path)
+			})
+
+			It("calls bifrost with the correct namespace", func() {
+				_, _, namespace := lrpBifrost.StopArgsForCall(0)
+				Expect(namespace).To(Equal("norini"))
+			})
+		})
+
+		When("app is not found", func() {
 			BeforeEach(func() {
 				lrpBifrost.StopReturns(errors.Wrap(eirini.ErrNotFound, "failed-to-stop"))
 			})
@@ -578,7 +654,7 @@ var _ = Describe("AppHandler", func() {
 			It("should provide a helpful log message", findLog("app-handler-test.stop-app.bifrost-failed", "app_1234"))
 		})
 
-		Context("when app stop is not successful", func() {
+		When("app stop is not successful", func() {
 			BeforeEach(func() {
 				lrpBifrost.StopReturns(errors.New("someting-bad-happened"))
 			})
@@ -619,13 +695,25 @@ var _ = Describe("AppHandler", func() {
 		})
 
 		It("should target the right app and the right instance index", func() {
-			_, identifier, index := lrpBifrost.StopInstanceArgsForCall(0)
+			_, identifier, index, namespace := lrpBifrost.StopInstanceArgsForCall(0)
 			Expect(identifier.GUID).To(Equal("app_1234"))
 			Expect(identifier.Version).To(Equal("version_1234"))
 			Expect(index).To(Equal(uint(1)))
+			Expect(namespace).To(Equal("eirini"))
 		})
 
-		Context("when app stop is not successful", func() {
+		When("there is a namespace query param provided", func() {
+			BeforeEach(func() {
+				path = fmt.Sprintf("%s?namespace=norini", path)
+			})
+
+			It("calls bifrost with the correct namespace", func() {
+				_, _, _, namespace := lrpBifrost.StopInstanceArgsForCall(0)
+				Expect(namespace).To(Equal("norini"))
+			})
+		})
+
+		When("app stop is not successful", func() {
 			Context("because the app does not exist", func() {
 				BeforeEach(func() {
 					lrpBifrost.StopInstanceReturns(errors.Wrap(eirini.ErrNotFound, "something-bad-happened"))
