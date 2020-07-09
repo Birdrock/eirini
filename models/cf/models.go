@@ -53,6 +53,11 @@ type DesireLRPRequest struct {
 	StartCommand            string                     `json:"start_command"`
 	UserDefinedAnnotations  map[string]string          `json:"user_defined_annotations"`
 	LRP                     string
+	PrivateLRPExtension
+}
+
+type PrivateLRPExtension struct {
+	OwnedBy
 }
 
 type DesiredLRPSchedulingInfo struct {

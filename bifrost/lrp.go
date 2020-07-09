@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"code.cloudfoundry.org/eirini"
 	"code.cloudfoundry.org/eirini/models/cf"
 	"code.cloudfoundry.org/eirini/opi"
 )
@@ -136,6 +137,31 @@ func (l *LRP) GetInstances(ctx context.Context, identifier opi.LRPIdentifier) ([
 	}
 
 	return cfInstances, nil
+}
+
+func (l *LRP) Reconcile(ctx context.Context, request cf.DesireLRPRequest, lastUpdated string) error {
+	_, err := l.GetApp(ctx, opi.LRPIdentifier{
+		GUID:    request.GUID,
+		Version: request.Version,
+	})
+	if errors.Is(err, eirini.ErrNotFound) {
+		return l.Transfer(ctx, request)
+	}
+	if err != nil {
+		return err
+	}
+
+	updateRequest := cf.UpdateDesiredLRPRequest{
+		GUID:    request.GUID,
+		Version: request.Version,
+		Update: cf.DesiredLRPUpdate{
+			Instances:  request.NumInstances,
+			Routes:     request.Routes,
+			Annotation: lastUpdated,
+		},
+	}
+
+	return l.Update(ctx, updateRequest)
 }
 
 func getURIs(update cf.DesiredLRPUpdate) string {

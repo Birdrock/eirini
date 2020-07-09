@@ -1,21 +1,30 @@
 package main
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"code.cloudfoundry.org/eirini"
+	"code.cloudfoundry.org/eirini/bifrost"
 	cmdcommons "code.cloudfoundry.org/eirini/cmd"
-	"code.cloudfoundry.org/eirini/k8s/controller"
-	"code.cloudfoundry.org/eirini/k8s/informers/lrp"
-	lrpclientset "code.cloudfoundry.org/eirini/pkg/generated/clientset/versioned"
-	"code.cloudfoundry.org/eirini/util"
+	"code.cloudfoundry.org/eirini/models/cf"
 	"code.cloudfoundry.org/lager"
 	"github.com/jessevdk/go-flags"
+	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
+
+	eiriniv1 "code.cloudfoundry.org/eirini/pkg/apis/lrp/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 type options struct {
@@ -30,48 +39,77 @@ func main() {
 	eiriniCfg, err := readConfigFile(opts.ConfigFile)
 	cmdcommons.ExitIfError(err)
 
-	kubeCfg, err := clientcmd.BuildConfigFromFlags("", eiriniCfg.ConfigPath)
+	kubeConfig, err := clientcmd.BuildConfigFromFlags("", eiriniCfg.Properties.ConfigPath)
 	cmdcommons.ExitIfError(err)
 
-	lrpClient, err := lrpclientset.NewForConfig(kubeCfg)
+	client, err := client.New(kubeConfig, client.Options{})
 	cmdcommons.ExitIfError(err)
 
-	launchLrpController(
-		lrpClient,
-		eiriniCfg.CAPath,
-		eiriniCfg.EiriniCertPath,
-		eiriniCfg.EiriniKeyPath,
-		eiriniCfg.EiriniURI,
-	)
-}
-
-func launchLrpController(lrpClientset lrpclientset.Interface, ca, eiriniCert, eiriniKey, eiriniURI string) {
-	httpClient, err := util.CreateTLSHTTPClient(
-		[]util.CertPaths{
-			{
-				Crt: eiriniCert,
-				Key: eiriniKey,
-				Ca:  ca,
-			},
-		},
-	)
+	clientset, err := kubernetes.NewForConfig(kubeConfig)
 	cmdcommons.ExitIfError(err)
 
 	logger := lager.NewLogger("lrp-informer")
 	logger.RegisterSink(lager.NewPrettySink(os.Stdout, lager.DEBUG))
 
-	lrpController := controller.NewRestLrp(httpClient, eiriniURI)
-	informer := lrp.NewInformer(logger, lrpClientset, lrpController)
-	informer.Start()
+	bifrost := cmdcommons.InitLRPBifrost(clientset, eiriniCfg)
+
+	lrpReconciler := NewLRPReconciler(client, bifrost)
+	// lrpController := controller.NewRestLrp(httpClient, eiriniURI)
+	// informer := lrp.NewInformer(logger, lrpClientset, lrpController)
+	// informer.Start()
+
+	mgr, err := manager.New(config.GetConfigOrDie(), manager.Options{})
+	cmdcommons.ExitIfError(err)
+
+	err = builder.
+		ControllerManagedBy(mgr).
+		For(&eiriniv1.LRP{}).
+		Owns(&appsv1.StatefulSet{}).
+		Complete(lrpReconciler)
+	cmdcommons.ExitIfError(err)
 }
 
-func readConfigFile(path string) (*eirini.LrpControllerConfig, error) {
+func NewLRPReconciler(client client.Client, lrpBifrost *bifrost.LRP) *LRPReconciler {
+	return &LRPReconciler{
+		client:     client,
+		lrpBifrost: lrpBifrost,
+	}
+}
+
+type LRPReconciler struct {
+	client     client.Client
+	lrpBifrost *bifrost.LRP
+}
+
+func (c *LRPReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	lrp := &eiriniv1.LRP{}
+	err := c.client.Get(context.Background(), request.NamespacedName, lrp)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	var createReq cf.DesireLRPRequest
+	if err := copier.Copy(&createReq, &lrp.Spec); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	createReq.Namespace = lrp.Namespace
+
+	err = c.lrpBifrost.Reconcile(context.Background(), createReq, lrp.Spec.LastUpdated)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	return reconcile.Result{}, nil
+}
+
+func readConfigFile(path string) (*eirini.Config, error) {
 	fileBytes, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read file")
 	}
 
-	var conf eirini.LrpControllerConfig
+	var conf eirini.Config
 	err = yaml.Unmarshal(fileBytes, &conf)
 	return &conf, errors.Wrap(err, "failed to unmarshal yaml")
 }
