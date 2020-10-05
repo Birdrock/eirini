@@ -56,7 +56,6 @@ const (
 
 	OPIContainerName = "opi"
 
-	VcapUID                  = 2000
 	PdbMinAvailableInstances = 1
 	PodAffinityTermWeight    = 100
 )
@@ -737,6 +736,5 @@ func (m *StatefulSetDesirer) getGetSecurityContext(lrp *opi.LRP) *corev1.PodSecu
 
 	return &corev1.PodSecurityContext{
 		RunAsNonRoot: &runAsNonRoot,
-		RunAsUser:    int64ptr(VcapUID),
 	}
 }
