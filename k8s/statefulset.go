@@ -3,6 +3,7 @@ package k8s
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"code.cloudfoundry.org/eirini"
@@ -11,6 +12,8 @@ import (
 	"code.cloudfoundry.org/eirini/opi"
 	"code.cloudfoundry.org/eirini/util"
 	"code.cloudfoundry.org/lager"
+	"github.com/containers/image/types"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -59,6 +62,8 @@ const (
 	VcapUID                  = 2000
 	PdbMinAvailableInstances = 1
 	PodAffinityTermWeight    = 100
+
+	TransportPrefix = "//"
 )
 
 //counterfeiter:generate . PodClient
@@ -728,15 +733,49 @@ func (m *StatefulSetDesirer) labelSelector(lrp *opi.LRP) *metav1.LabelSelector {
 	}
 }
 
+func (m *StatefulSetDesirer) getImageConfig(lrp *opi.LRP) (*v1.ImageConfig, error) {
+	sysCtx := types.SystemContext{}
+	if lrp.PrivateRegistry != nil {
+		sysCtx = types.SystemContext{
+			DockerAuthConfig: &types.DockerAuthConfig{
+				Username: lrp.PrivateRegistry.Username,
+				Password: lrp.PrivateRegistry.Password,
+			},
+		}
+	}
+
+	img, err := dockerutils.Fetch(TransportPrefix+lrp.Image, sysCtx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return img, nil
+}
+
 func (m *StatefulSetDesirer) getGetSecurityContext(lrp *opi.LRP) *corev1.PodSecurityContext {
 	if lrp.RunsAsRoot {
 		return nil
+	}
+
+	var runAsUID, uid int
+	img, err := m.getImageConfig(lrp)
+	fmt.Printf("Error fetching image configuration: %v", err)
+
+	if err == nil {
+		uid, err = strconv.Atoi(img.User)
+	}
+
+	if err != nil {
+		runAsUID = 7700
+	} else {
+		runAsUID = uid
 	}
 
 	runAsNonRoot := true
 
 	return &corev1.PodSecurityContext{
 		RunAsNonRoot: &runAsNonRoot,
-		RunAsUser:    int64ptr(VcapUID),
+		RunAsUser:    int64ptr(runAsUID),
 	}
 }
