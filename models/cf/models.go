@@ -34,6 +34,7 @@ type DesireLRPRequest struct {
 	Namespace               string                     `json:"namespace"`
 	PlacementTags           []string                   `json:"placement_tags"`
 	Ports                   []int32                    `json:"ports"`
+	User                    string                     `json:"user"`
 	Routes                  map[string]json.RawMessage `json:"routes"`
 	Environment             map[string]string          `json:"environment"`
 	EgressRules             []json.RawMessage          `json:"egress_rules"`
@@ -79,6 +80,7 @@ type Lifecycle struct {
 type DockerLifecycle struct {
 	Image            string   `json:"image"`
 	Command          []string `json:"command"`
+	User             string   `json:"docker_user"`
 	RegistryUsername string   `json:"registry_username"`
 	RegistryPassword string   `json:"registry_password"`
 }
